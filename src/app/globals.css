@@ -1,0 +1,277 @@
+﻿@import "tailwindcss";
+
+:root {
+  --navy: #1F3A6E;
+  --navy-dark: #15294F;
+  --blue: #2E5FAC;
+  --red: #B23A48;
+  --bg: #FAFAF7;
+  --text: #2A2A2A;
+  --gray: #888888;
+  --gray-light: #E5E5E5;
+  --cream: #F5F2E8;
+  --green: #2E7D32;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
+  background: #FAFAF7;
+  color: #2A2A2A;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 랜딩 */
+.top-bar { height: 28px; background: #1F3A6E; }
+.bottom-bar { height: 28px; background: #1F3A6E; position: fixed; bottom: 0; left: 0; right: 0; }
+.left-accent { position: fixed; left: 0; top: 28px; bottom: 28px; width: 50px; background: #1F3A6E; }
+
+.landing {
+  min-height: calc(100vh - 56px);
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 60px 60px 80px 130px; max-width: 900px;
+}
+.landing .label { font-family: 'Cormorant Garamond', serif; font-size: 16px; letter-spacing: 5px; color: #B23A48; font-weight: 600; margin-bottom: 14px; }
+.landing h1 { font-family: 'Noto Serif KR', serif; font-size: 64px; color: #2E5FAC; font-weight: 900; line-height: 1.1; margin-bottom: 20px; }
+.landing .subtitle { font-size: 18px; margin-bottom: 6px; }
+.landing .subtitle-en { font-family: 'Cormorant Garamond', serif; font-size: 14px; color: #888; letter-spacing: 2px; font-style: italic; margin-bottom: 40px; }
+.landing .rule { width: 100%; height: 5px; background: #1F3A6E; margin-bottom: 36px; }
+.btn-row { display: flex; gap: 14px; margin-bottom: 56px; }
+.btn { font-family: inherit; font-size: 15px; font-weight: 500; padding: 14px 36px; border: 1px solid #1F3A6E; cursor: pointer; letter-spacing: 2px; transition: all 0.2s; }
+.btn-primary { background: #1F3A6E; color: white; }
+.btn-primary:hover { background: #15294F; }
+.btn-outline { background: white; color: #1F3A6E; }
+.btn-outline:hover { background: #1F3A6E; color: white; }
+.satus-block .satus { font-family: 'Cormorant Garamond', serif; font-size: 32px; color: #1F3A6E; font-weight: 600; letter-spacing: 6px; }
+.satus-block .satus-sub { font-family: 'Cormorant Garamond', serif; font-size: 12px; color: #888; letter-spacing: 3px; font-style: italic; margin-top: 4px; }
+
+/* 모달 */
+.modal-overlay { position: fixed; inset: 0; background: rgba(15,25,50,0.55); z-index: 100; display: flex; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(4px); }
+.modal { background: white; width: 100%; max-width: 420px; padding: 36px 36px 28px; position: relative; box-shadow: 0 24px 64px rgba(0,0,0,0.25); }
+.modal-close { position: absolute; top: 14px; right: 16px; background: none; border: none; font-size: 22px; color: #888; cursor: pointer; }
+.modal h2 { font-family: 'Noto Serif KR', serif; font-size: 22px; color: #1F3A6E; font-weight: 700; margin-bottom: 22px; }
+.modal .field { margin-bottom: 16px; }
+.modal label { display: block; font-size: 13px; color: #1F3A6E; font-weight: 600; margin-bottom: 6px; }
+.modal input { width: 100%; padding: 12px 14px; border: 1px solid #E5E5E5; font-family: inherit; font-size: 14px; }
+.modal input:focus { outline: none; border-color: #1F3A6E; }
+.modal .submit { width: 100%; margin-top: 10px; padding: 14px; background: #1F3A6E; color: white; border: none; cursor: pointer; font-family: inherit; font-size: 15px; font-weight: 500; letter-spacing: 2px; }
+.modal .submit:hover { background: #15294F; }
+.modal .note { margin-top: 14px; font-size: 12px; color: #888; text-align: center; line-height: 1.6; }
+
+/* 학생 공통 헤더 */
+.app-header { background: #1F3A6E; color: white; padding: 0 32px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
+.app-header .logo { font-family: 'Noto Serif KR', serif; font-size: 17px; font-weight: 700; }
+.app-header .logo span { font-family: 'Cormorant Garamond', serif; font-size: 12px; letter-spacing: 2px; opacity: 0.7; margin-left: 10px; }
+.app-header .user-area { display: flex; align-items: center; gap: 14px; font-size: 13px; }
+.app-header .logout-btn { background: none; border: 1px solid rgba(255,255,255,0.4); color: white; padding: 6px 14px; cursor: pointer; font-family: inherit; font-size: 12px; }
+.app-header .logout-btn:hover { background: rgba(255,255,255,0.12); }
+
+/* 공지 배너 */
+.banner { background: #FFF6D8; border-bottom: 1px solid #F0E2A8; padding: 12px 32px; display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.banner .close { margin-left: auto; background: none; border: none; font-size: 18px; color: #9A8A4D; cursor: pointer; }
+
+.container { max-width: 1080px; margin: 0 auto; padding: 32px 24px 80px; }
+
+/* Hero */
+.hero { background: #1F3A6E; color: white; padding: 36px 40px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px; }
+.hero h2 { font-family: 'Noto Serif KR', serif; font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.hero p { font-size: 14px; opacity: 0.85; margin-bottom: 18px; }
+.continue-btn { background: white; color: #1F3A6E; border: none; padding: 14px 28px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; letter-spacing: 1px; }
+.continue-btn:hover { background: #F5F2E8; }
+.hero-stats { display: flex; gap: 28px; }
+.hero-stat { text-align: center; }
+.hero-stat .num { font-family: 'Cormorant Garamond', serif; font-size: 34px; font-weight: 700; }
+.hero-stat .label { font-size: 11px; opacity: 0.75; letter-spacing: 1px; }
+
+/* 진행률 */
+.progress-section { margin: 28px 0 8px; }
+.progress-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; color: #888; }
+.progress-track { height: 8px; background: #E8E8E2; }
+.progress-fill { height: 100%; background: #1F3A6E; transition: width 0.4s; }
+
+/* 섹션 제목 */
+.section-title-row { display: flex; align-items: center; gap: 10px; margin: 36px 0 18px; }
+.section-title-row .bar { width: 4px; height: 20px; background: #B23A48; }
+.section-title-row h3 { font-family: 'Noto Serif KR', serif; font-size: 19px; color: #1F3A6E; }
+
+/* 강의 카드 */
+.lesson-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.lesson-card { background: white; border: 1px solid #E5E5E5; border-top: 4px solid #1F3A6E; padding: 22px 22px 18px; cursor: pointer; transition: all 0.15s; }
+.lesson-card:hover { box-shadow: 0 6px 18px rgba(31,58,110,0.12); transform: translateY(-2px); }
+.lesson-card.done { border-top-color: #2E7D32; }
+.lesson-card.locked { opacity: 0.55; cursor: not-allowed; border-top-color: #BBBBBB; }
+.lesson-card.locked:hover { box-shadow: none; transform: none; }
+.lesson-card .num { font-family: 'Cormorant Garamond', serif; font-size: 12px; letter-spacing: 2px; color: #B23A48; font-weight: 700; }
+.lesson-card h4 { font-family: 'Noto Serif KR', serif; font-size: 16px; color: #1F3A6E; margin: 6px 0 4px; line-height: 1.4; }
+.lesson-card .meta { font-size: 12px; color: #888; }
+.lesson-card .status-row { margin-top: 14px; font-size: 12px; font-weight: 600; }
+.status-done { color: #2E7D32; }
+.status-current { color: #2E5FAC; }
+.status-locked { color: #999999; }
+
+.empty-note { padding: 40px; text-align: center; color: #888; background: white; border: 1px dashed #E5E5E5; }
+.loading-note { padding: 60px; text-align: center; color: #888; }
+
+@media (max-width: 768px) {
+  .left-accent { width: 24px; }
+  .landing { padding: 40px 24px 80px 60px; }
+  .landing h1 { font-size: 40px; }
+  .app-header { padding: 0 16px; }
+  .hero { padding: 24px 20px; }
+}
+
+/* ───── 강의 학습 페이지 ───── */
+.lesson-wrap { max-width: 860px; margin: 0 auto; padding: 28px 24px 100px; }
+.lesson-head .back { background: none; border: none; color: #888; cursor: pointer; font-size: 13px; margin-bottom: 12px; font-family: inherit; }
+.lesson-head .back:hover { color: #1F3A6E; }
+.lesson-head .num { font-family: 'Cormorant Garamond', serif; letter-spacing: 3px; color: #B23A48; font-weight: 700; font-size: 13px; }
+.lesson-head h1 { font-family: 'Noto Serif KR', serif; font-size: 26px; color: #1F3A6E; margin: 6px 0 4px; line-height: 1.3; }
+.lesson-head .meta { color: #888; font-size: 13px; }
+
+.steps-nav { display: flex; gap: 8px; margin: 22px 0 26px; flex-wrap: wrap; }
+.step-tab { flex: 1; min-width: 150px; padding: 12px 12px; border: 1px solid #E5E5E5; border-top: 3px solid #E5E5E5; background: white; cursor: pointer; font-family: inherit; font-size: 13px; text-align: left; color: #555; }
+.step-tab .step-no { font-family: 'Cormorant Garamond', serif; font-size: 11px; letter-spacing: 2px; color: #888; display: block; margin-bottom: 2px; }
+.step-tab.active { border-color: #1F3A6E; border-top: 3px solid #1F3A6E; font-weight: 700; color: #1F3A6E; }
+.step-tab.done .step-no::after { content: ' ✓'; color: #2E7D32; }
+.step-tab.locked { opacity: 0.45; cursor: not-allowed; }
+
+.panel { background: white; border: 1px solid #E5E5E5; padding: 30px; }
+.panel h2 { font-family: 'Noto Serif KR', serif; font-size: 20px; color: #1F3A6E; margin-bottom: 14px; }
+.video-box { width: 100%; aspect-ratio: 16/9; background: #15294F; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.6); font-size: 14px; margin: 14px 0 18px; }
+.video-box iframe { width: 100%; height: 100%; border: 0; }
+.passage { background: #F5F2E8; border-left: 4px solid #1F3A6E; padding: 20px 24px; line-height: 2; font-size: 15px; margin: 14px 0 22px; font-family: 'Noto Serif KR', serif; }
+
+.pq-item { margin-bottom: 18px; }
+.pq-item .q { font-weight: 600; color: #1F3A6E; font-size: 14px; margin-bottom: 8px; }
+.pq-item input { width: 100%; padding: 11px 14px; border: 1px solid #E5E5E5; font-family: inherit; font-size: 14px; }
+.pq-item input:focus { outline: none; border-color: #1F3A6E; }
+.pq-item input:disabled { background: #FAFAF7; }
+.pq-result { margin-top: 6px; font-size: 13px; font-weight: 600; }
+.pq-result.ok { color: #2E7D32; }
+.pq-result.no { color: #B23A48; }
+
+.next-btn { background: #1F3A6E; color: white; border: none; padding: 14px 32px; font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: 1px; cursor: pointer; margin-top: 10px; }
+.next-btn:hover { background: #15294F; }
+.next-btn:disabled { background: #BBBBBB; cursor: not-allowed; }
+
+.traffic { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
+.light { width: 18px; height: 18px; border-radius: 50%; background: #E0E0DA; border: 1px solid #CCCCCC; }
+.light.on1, .light.on2 { background: #F5B700; border-color: #D9A200; }
+.light.on3 { background: #B23A48; border-color: #962F3B; }
+.traffic .t-label { font-size: 12px; color: #888; }
+
+.asg-card { border: 1px solid #E5E5E5; padding: 22px; margin-bottom: 18px; }
+.asg-card .a-title { font-family: 'Noto Serif KR', serif; font-weight: 700; color: #1F3A6E; font-size: 16px; margin-bottom: 6px; }
+.asg-card .a-prompt { font-size: 14px; line-height: 1.8; margin-bottom: 10px; }
+.asg-card .a-guide { font-size: 12px; color: #888; margin-bottom: 10px; }
+.asg-card textarea { width: 100%; min-height: 140px; padding: 14px; border: 1px solid #E5E5E5; font-family: inherit; font-size: 14px; line-height: 1.8; resize: vertical; }
+.asg-card textarea:focus { outline: none; border-color: #1F3A6E; }
+.char-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.char-count { font-size: 12px; color: #888; }
+.submit-asg { background: #1F3A6E; color: white; border: none; padding: 10px 24px; font-family: inherit; font-size: 13px; cursor: pointer; }
+.submit-asg:hover { background: #15294F; }
+.submit-asg:disabled { background: #BBBBBB; cursor: not-allowed; }
+.asg-status { font-size: 13px; font-weight: 600; padding: 10px 14px; margin-top: 10px; }
+.asg-status.grading { background: #FFF6D8; color: #7A5C00; }
+.asg-status.scored { background: #E8F5E9; color: #2E7D32; }
+.my-answer { background: #FAFAF7; border: 1px solid #EEEEEE; padding: 14px; font-size: 14px; line-height: 1.8; margin-top: 8px; white-space: pre-wrap; }
+.done-banner { background: #E8F5E9; border: 1px solid #C8E6C9; color: #2E7D32; padding: 18px 22px; font-weight: 600; margin-bottom: 20px; }
+/* ───── 강의 학습 페이지 ───── */
+.lesson-wrap { max-width: 860px; margin: 0 auto; padding: 28px 24px 100px; }
+.lesson-head .back { background: none; border: none; color: #888; cursor: pointer; font-size: 13px; margin-bottom: 12px; font-family: inherit; }
+.lesson-head .back:hover { color: #1F3A6E; }
+.lesson-head .num { font-family: 'Cormorant Garamond', serif; letter-spacing: 3px; color: #B23A48; font-weight: 700; font-size: 13px; }
+.lesson-head h1 { font-family: 'Noto Serif KR', serif; font-size: 26px; color: #1F3A6E; margin: 6px 0 4px; line-height: 1.3; }
+.lesson-head .meta { color: #888; font-size: 13px; }
+.steps-nav { display: flex; gap: 8px; margin: 22px 0 26px; flex-wrap: wrap; }
+.step-tab { flex: 1; min-width: 150px; padding: 12px 12px; border: 1px solid #E5E5E5; border-top: 3px solid #E5E5E5; background: white; cursor: pointer; font-family: inherit; font-size: 13px; text-align: left; color: #555; }
+.step-tab .step-no { font-family: 'Cormorant Garamond', serif; font-size: 11px; letter-spacing: 2px; color: #888; display: block; margin-bottom: 2px; }
+.step-tab.active { border-color: #1F3A6E; border-top: 3px solid #1F3A6E; font-weight: 700; color: #1F3A6E; }
+.step-tab.done .step-no::after { content: ' ✓'; color: #2E7D32; }
+.step-tab.locked { opacity: 0.45; cursor: not-allowed; }
+.panel { background: white; border: 1px solid #E5E5E5; padding: 30px; }
+.panel h2 { font-family: 'Noto Serif KR', serif; font-size: 20px; color: #1F3A6E; margin-bottom: 14px; }
+.video-box { width: 100%; aspect-ratio: 16/9; background: #15294F; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.6); font-size: 14px; margin: 14px 0 18px; }
+.video-box iframe { width: 100%; height: 100%; border: 0; }
+.passage { background: #F5F2E8; border-left: 4px solid #1F3A6E; padding: 20px 24px; line-height: 2; font-size: 15px; margin: 14px 0 22px; font-family: 'Noto Serif KR', serif; }
+.pq-item { margin-bottom: 18px; }
+.pq-item .q { font-weight: 600; color: #1F3A6E; font-size: 14px; margin-bottom: 8px; }
+.pq-item input { width: 100%; padding: 11px 14px; border: 1px solid #E5E5E5; font-family: inherit; font-size: 14px; }
+.pq-item input:focus { outline: none; border-color: #1F3A6E; }
+.pq-item input:disabled { background: #FAFAF7; }
+.pq-result { margin-top: 6px; font-size: 13px; font-weight: 600; }
+.pq-result.ok { color: #2E7D32; }
+.pq-result.no { color: #B23A48; }
+.next-btn { background: #1F3A6E; color: white; border: none; padding: 14px 32px; font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: 1px; cursor: pointer; margin-top: 10px; }
+.next-btn:hover { background: #15294F; }
+.next-btn:disabled { background: #BBBBBB; cursor: not-allowed; }
+.traffic { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
+.light { width: 18px; height: 18px; border-radius: 50%; background: #E0E0DA; border: 1px solid #CCCCCC; }
+.light.on1, .light.on2 { background: #F5B700; border-color: #D9A200; }
+.light.on3 { background: #B23A48; border-color: #962F3B; }
+.traffic .t-label { font-size: 12px; color: #888; }
+.asg-card { border: 1px solid #E5E5E5; padding: 22px; margin-bottom: 18px; }
+.asg-card .a-title { font-family: 'Noto Serif KR', serif; font-weight: 700; color: #1F3A6E; font-size: 16px; margin-bottom: 6px; }
+.asg-card .a-prompt { font-size: 14px; line-height: 1.8; margin-bottom: 10px; }
+.asg-card .a-guide { font-size: 12px; color: #888; margin-bottom: 10px; }
+.asg-card textarea { width: 100%; min-height: 140px; padding: 14px; border: 1px solid #E5E5E5; font-family: inherit; font-size: 14px; line-height: 1.8; resize: vertical; }
+.asg-card textarea:focus { outline: none; border-color: #1F3A6E; }
+.char-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.char-count { font-size: 12px; color: #888; }
+.submit-asg { background: #1F3A6E; color: white; border: none; padding: 10px 24px; font-family: inherit; font-size: 13px; cursor: pointer; }
+.submit-asg:hover { background: #15294F; }
+.submit-asg:disabled { background: #BBBBBB; cursor: not-allowed; }
+.asg-status { font-size: 13px; font-weight: 600; padding: 10px 14px; margin-top: 10px; }
+.asg-status.grading { background: #FFF6D8; color: #7A5C00; }
+.asg-status.scored { background: #E8F5E9; color: #2E7D32; }
+.my-answer { background: #FAFAF7; border: 1px solid #EEEEEE; padding: 14px; font-size: 14px; line-height: 1.8; margin-top: 8px; white-space: pre-wrap; }
+.done-banner { background: #E8F5E9; border: 1px solid #C8E6C9; color: #2E7D32; padding: 18px 22px; font-weight: 600; margin-bottom: 20px; }
+/* ───── 선생님 페이지 ───── */
+.t-stats { display: flex; gap: 14px; margin-bottom: 24px; }
+.t-stat { flex: 1; background: white; border: 1px solid #E5E5E5; border-top: 4px solid #1F3A6E; padding: 18px; text-align: center; }
+.t-stat .num { font-family: 'Cormorant Garamond', serif; font-size: 34px; font-weight: 700; color: #1F3A6E; }
+.t-stat .label { font-size: 12px; color: #888; letter-spacing: 1px; }
+.filter-row { display: flex; gap: 8px; margin-bottom: 18px; }
+.f-btn { padding: 9px 18px; border: 1px solid #E5E5E5; background: white; font-family: inherit; font-size: 13px; cursor: pointer; color: #555; }
+.f-btn.on { background: #1F3A6E; color: white; border-color: #1F3A6E; font-weight: 600; }
+.sub-card { background: white; border: 1px solid #E5E5E5; margin-bottom: 12px; }
+.sub-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; cursor: pointer; gap: 12px; flex-wrap: wrap; }
+.sub-head:hover { background: #FAFAF7; }
+.sub-student { font-weight: 700; color: #1F3A6E; font-size: 15px; }
+.sub-email { font-weight: 400; color: #999; font-size: 12px; margin-left: 6px; }
+.sub-meta { font-size: 13px; color: #888; margin-top: 3px; }
+.sub-badge { font-size: 12px; font-weight: 700; padding: 7px 14px; white-space: nowrap; }
+.sub-badge.pending { background: #FFF6D8; color: #7A5C00; }
+.sub-badge.sent { background: #E8F5E9; color: #2E7D32; }
+.sub-body { border-top: 1px solid #EEEEEE; padding: 20px; }
+.sub-prompt { font-size: 13px; color: #666; background: #F5F2E8; padding: 12px 16px; border-left: 3px solid #1F3A6E; margin-bottom: 12px; line-height: 1.7; }
+.grade-row { display: flex; align-items: center; gap: 12px; margin: 16px 0 10px; }
+.grade-row label { font-size: 13px; font-weight: 600; color: #1F3A6E; }
+.grade-row input { width: 90px; padding: 9px 12px; border: 1px solid #E5E5E5; font-family: inherit; font-size: 15px; }
+.fb-label { display: block; font-size: 13px; font-weight: 600; color: #1F3A6E; margin-bottom: 6px; }
+.sub-body textarea { width: 100%; min-height: 90px; padding: 12px; border: 1px solid #E5E5E5; font-family: inherit; font-size: 14px; line-height: 1.7; resize: vertical; }
+/* ───── 선생님 페이지 ───── */
+.t-stats { display: flex; gap: 14px; margin-bottom: 24px; }
+.t-stat { flex: 1; background: white; border: 1px solid #E5E5E5; border-top: 4px solid #1F3A6E; padding: 18px; text-align: center; }
+.t-stat .num { font-family: 'Cormorant Garamond', serif; font-size: 34px; font-weight: 700; color: #1F3A6E; }
+.t-stat .label { font-size: 12px; color: #888; letter-spacing: 1px; }
+.filter-row { display: flex; gap: 8px; margin-bottom: 18px; }
+.f-btn { padding: 9px 18px; border: 1px solid #E5E5E5; background: white; font-family: inherit; font-size: 13px; cursor: pointer; color: #555; }
+.f-btn.on { background: #1F3A6E; color: white; border-color: #1F3A6E; font-weight: 600; }
+.sub-card { background: white; border: 1px solid #E5E5E5; margin-bottom: 12px; }
+.sub-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; cursor: pointer; gap: 12px; flex-wrap: wrap; }
+.sub-head:hover { background: #FAFAF7; }
+.sub-student { font-weight: 700; color: #1F3A6E; font-size: 15px; }
+.sub-email { font-weight: 400; color: #999; font-size: 12px; margin-left: 6px; }
+.sub-meta { font-size: 13px; color: #888; margin-top: 3px; }
+.sub-badge { font-size: 12px; font-weight: 700; padding: 7px 14px; white-space: nowrap; }
+.sub-badge.pending { background: #FFF6D8; color: #7A5C00; }
+.sub-badge.sent { background: #E8F5E9; color: #2E7D32; }
+.sub-body { border-top: 1px solid #EEEEEE; padding: 20px; }
+.sub-prompt { font-size: 13px; color: #666; background: #F5F2E8; padding: 12px 16px; border-left: 3px solid #1F3A6E; margin-bottom: 12px; line-height: 1.7; }
+.grade-row { display: flex; align-items: center; gap: 12px; margin: 16px 0 10px; }
+.grade-row label { font-size: 13px; font-weight: 600; color: #1F3A6E; }
+.grade-row input { width: 90px; padding: 9px 12px; border: 1px solid #E5E5E5; font-family: inherit; font-size: 15px; }
+.fb-label { display: block; font-size: 13px; font-weight: 600; color: #1F3A6E; margin-bottom: 6px; }
+.sub-body textarea { width: 100%; min-height: 90px; padding: 12px; border: 1px solid #E5E5E5; font-family: inherit; font-size: 14px; line-height: 1.7; resize: vertical; }
