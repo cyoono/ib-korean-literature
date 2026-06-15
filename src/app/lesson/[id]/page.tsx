@@ -126,27 +126,61 @@ export default function LessonPage() {
     await supabase.from('prequestion_answers').upsert(rows, { onConflict: 'user_id,prequestion_id' });
   }
 
-  async function submitAsg(a: Assignment) {
+ async function submitAsg(a: Assignment) {
     const content = (asgInputs[a.id] || '').trim();
     if (a.min_chars && content.length < a.min_chars) {
       alert('최소 ' + a.min_chars + '자 이상 작성해 주세요. (현재 ' + content.length + '자)');
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from('submissions').insert({ user_id: userId, assignment_id: a.id, content: content });
+    const { data: inserted, error } = await supabase
+      .from('submissions')
+      .insert({ user_id: userId, assignment_id: a.id, content: content })
+      .select('id')
+      .single();
     setSaving(false);
     if (error) {
       alert('제출 실패: ' + error.message);
       return;
     }
+
     const updated = [...submissions, { assignment_id: a.id, content: content, final_score: null, final_feedback: null, published_to_student: false }];
     setSubmissions(updated);
     const submittedForThisLesson = assignments.filter((x) => updated.some((s) => s.assignment_id === x.id)).length;
     if (assignments.length > 0 && submittedForThisLesson >= assignments.length) {
       await completeStep(4);
     }
-  }
 
+    // AI 자동 채점 (백그라운드 — 실패해도 제출 자체엔 영향 없음)
+    if (inserted && inserted.id) {
+      try {
+        const res = await fetch('/api/grade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: a.prompt,
+            answer: content,
+            maxScore: a.max_score || 7,
+            workTitle: lesson ? lesson.title : '',
+            lessonTitle: lesson ? '제' + lesson.lesson_number + '강' : '',
+          }),
+        });
+        const result = await res.json();
+        if (typeof result.score === 'number') {
+          await supabase
+            .from('submissions')
+            .update({
+              ai_score: result.score,
+              ai_feedback: result.feedback || '',
+              ai_graded_at: new Date().toISOString(),
+            })
+            .eq('id', inserted.id);
+        }
+      } catch {
+        // AI 채점 실패는 조용히 넘어감 — 선생님이 수동 채점하면 됨
+      }
+    }
+  }
   function embed(url: string | null) {
     if (!url) return null;
     return url.replace('watch?v=', 'embed/');
