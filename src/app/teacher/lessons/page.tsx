@@ -136,6 +136,18 @@ export default function LessonsPage() {
     setSaving(false);
   }
 
+  async function deleteLesson(l: Lesson) {
+    const ok = window.confirm(
+      '제' + l.lesson_number + '강 "' + l.title + '" 을(를) 삭제합니다.\n\n' +
+      '이 강의에 딸린 사전질문, 과제, 학생 제출물(채점 기록 포함)이 모두 함께 삭제되며 복구할 수 없습니다.\n\n정말 삭제할까요?'
+    );
+    if (!ok) return;
+    const { error } = await supabase.from('lessons').delete().eq('id', l.id);
+    if (error) { setMsg('삭제 실패: ' + error.message); return; }
+    setMsg('제' + l.lesson_number + '강 "' + l.title + '" 이(가) 삭제되었습니다.');
+    await loadLessons();
+  }
+
   async function toggleStatus(l: Lesson) {
     const next = l.status === 'published' ? 'draft' : 'published';
     const { error } = await supabase
@@ -195,6 +207,12 @@ export default function LessonsPage() {
                     style={{ background: l.status === 'published' ? '#777' : NAVY, color: '#fff', border: 'none', padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                   >
                     {l.status === 'published' ? '비공개로' : '공개하기'}
+                  </button>
+                  <button
+                    onClick={() => deleteLesson(l)}
+                    style={{ background: '#B23A48', color: '#fff', border: 'none', padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    삭제
                   </button>
                 </div>
               </div>
