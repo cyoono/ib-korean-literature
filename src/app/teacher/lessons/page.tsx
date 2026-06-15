@@ -208,6 +208,11 @@ export default function LessonsPage() {
                   >
                     {l.status === 'published' ? '비공개로' : '공개하기'}
                   </button>
+                <a href={'/teacher/lessons/edit/' + l.id}
+                    style={{ background: '#2E5FAC', color: '#fff', border: 'none', padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', textDecoration: 'none' }}
+                  >
+                    수정
+                  </a>
                   <button
                     onClick={() => deleteLesson(l)}
                     style={{ background: '#B23A48', color: '#fff', border: 'none', padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
