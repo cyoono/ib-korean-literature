@@ -7,6 +7,7 @@ const MENU = [
   { href: '/teacher', label: '채점 관리' },
   { href: '/teacher/lessons', label: '회차 관리' },
   { href: '/teacher/approvals', label: '가입 승인' },
+  { href: '/teacher/reports', label: '리포트' },
 ];
 
 export default function TeacherHeader({ teacherName }: { teacherName?: string }) {
