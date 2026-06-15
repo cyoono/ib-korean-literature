@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-
+import TeacherHeader from '@/app/components/TeacherHeader';
 type Lesson = {
   id: string;
   lesson_number: number;
@@ -165,14 +165,7 @@ export default function LessonsPage() {
 
   return (
     <>
-      <header className="app-header">
-        <div className="logo">IB · 글로컬 K-문학<span>TEACHER</span></div>
-        <div className="user-area">
-          <a href="/teacher" style={{ color: '#fff', fontSize: 14, marginRight: 16, textDecoration: 'underline' }}>채점 관리</a>
-          <a href="/teacher/approvals" style={{ color: '#fff', fontSize: 14, marginRight: 16, textDecoration: 'underline' }}>가입 승인</a>
-          <span>{teacherName} 선생님</span>
-        </div>
-      </header>
+      <TeacherHeader teacherName={teacherName} />
 
       <div className="container">
         <h1 style={{ color: NAVY, fontSize: 22, marginBottom: 16 }}>회차 관리</h1>

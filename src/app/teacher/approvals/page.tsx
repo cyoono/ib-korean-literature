@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-
+import TeacherHeader from '@/app/components/TeacherHeader';
 type Profile = {
   id: string;
   email: string;
@@ -73,12 +73,7 @@ export default function ApprovalsPage() {
 
   return (
     <>
-      <header className="app-header">
-        <div className="logo">IB · 글로컬 K-문학<span>TEACHER</span></div>
-        <div className="user-area">
-          <a href="/teacher" style={{ color: '#fff', fontSize: 14, textDecoration: 'underline' }}>← 채점 관리로</a>
-        </div>
-      </header>
+      <TeacherHeader />
 
       <div className="container">
         <h1 style={{ color: NAVY, fontSize: 22, marginBottom: 16 }}>가입 승인 관리</h1>

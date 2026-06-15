@@ -1,4 +1,5 @@
 ﻿'use client';
+import TeacherHeader from '@/app/components/TeacherHeader';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -93,14 +94,8 @@ export default function TeacherPage() {
 
   return (
     <>
-      <header className="app-header">
-        <div className="logo">IB · 글로컬 K-문학<span>TEACHER</span></div>
-        <div className="user-area">
-          <a href="/teacher/approvals" style={{ color: '#fff', fontSize: 14, marginRight: 16, textDecoration: 'underline' }}>가입 승인</a>
-          <span>{teacherName} 선생님</span>
-          <button className="logout-btn" onClick={logout}>로그아웃</button>
-        </div>
-      </header>
+     <TeacherHeader teacherName={teacherName} />
+  
 
       <div className="container">
         <div className="t-stats">
