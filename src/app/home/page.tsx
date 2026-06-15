@@ -98,6 +98,7 @@ export default function StudentHome() {
           IB · 글로컬 K-문학<span>SATUS</span>
         </div>
         <div className="user-area">
+          <a href="/reports" style={{ color: '#fff', fontSize: 14, marginRight: 16, textDecoration: 'underline' }}>리포트 카드</a>
           <span>{name}님</span>
           <button className="logout-btn" onClick={logout}>로그아웃</button>
         </div>
