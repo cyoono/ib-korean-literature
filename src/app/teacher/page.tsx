@@ -10,11 +10,10 @@ type Sub = {
   assignment_id: string;
   content: string;
   submitted_at: string;
-  final_score: number | null;
-  final_feedback: string | null;
+  ai_score: number | null;
+  ai_feedback: string | null;
   published_to_student: boolean;
 };
-
 type Asg = { id: string; lesson_id: string; order_index: number; title: string; prompt: string; max_score: number };
 type LessonLite = { id: string; lesson_number: number; title: string };
 type ProfileLite = { id: string; name: string; email: string };
@@ -61,12 +60,12 @@ export default function TeacherPage() {
   async function publish(s: Sub) {
     const a = asgOf(s);
     const max = a ? a.max_score : 7;
-    const sc = parseInt(scoreInput[s.id] !== undefined ? scoreInput[s.id] : (s.final_score !== null ? String(s.final_score) : ''), 10);
+    const sc = parseInt(scoreInput[s.id] !== undefined ? scoreInput[s.id] : (s.final_score !== null ? String(s.final_score) : (s.ai_score !== null ? String(s.ai_score) : '')), 10);
     if (isNaN(sc) || sc < 0 || sc > max) {
       alert('0~' + max + ' 사이의 점수를 입력해 주세요');
       return;
     }
-    const fb = fbInput[s.id] !== undefined ? fbInput[s.id] : (s.final_feedback || '');
+    const fb = fbInput[s.id] !== undefined ? fbInput[s.id] : (s.final_feedback || s.ai_feedback || '');
     const { error } = await supabase.from('submissions').update({
       final_score: sc,
       final_feedback: fb,

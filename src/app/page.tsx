@@ -8,6 +8,7 @@ export default function Home() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -110,7 +111,12 @@ export default function Home() {
             </div>
             <div className="field">
               <label>비밀번호</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호" />
+              <div style={{ position: 'relative' }}>
+                <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호" style={{ width: '100%', paddingRight: 48 }} />
+                <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: '#2E5FAC' }}>
+                  {showPw ? '숨기기' : '보기'}
+                </button>
+              </div>
             </div>
             <button className="submit" onClick={handleLogin} disabled={loading}>
               {loading ? '확인 중...' : '로그인'}
@@ -136,7 +142,12 @@ export default function Home() {
             </div>
             <div className="field">
               <label>비밀번호</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="8자 이상" />
+              <div style={{ position: 'relative' }}>
+                <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="8자 이상" style={{ width: '100%', paddingRight: 48 }} />
+                <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: '#2E5FAC' }}>
+                  {showPw ? '숨기기' : '보기'}
+                </button>
+              </div>
             </div>
             <button className="submit" onClick={handleSignup} disabled={loading}>
               {loading ? '신청 중...' : '가입 신청'}
