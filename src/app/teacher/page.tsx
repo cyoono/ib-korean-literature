@@ -10,6 +10,8 @@ type Sub = {
   assignment_id: string;
   content: string;
   submitted_at: string;
+  final_score: number | null;
+  final_feedback: string | null;
   ai_score: number | null;
   ai_feedback: string | null;
   published_to_student: boolean;
