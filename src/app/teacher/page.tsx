@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import TeacherHeader from '@/app/components/TeacherHeader';
 
 import { useEffect, useState } from 'react';
@@ -134,25 +134,69 @@ export default function TeacherPage() {
                   <div className="sub-body">
                     <div className="sub-prompt">{a ? a.prompt : ''}</div>
                     <div className="my-answer">{s.content}</div>
+
+                    {/* AI 채점 원본 — 참고용. 실제 발송되는 것은 아래 입력칸의 내용이다. */}
+                    {(s.ai_score !== null || s.ai_feedback) && (
+                      <div className="ai-box">
+                        <div className="ai-head">
+                          <span className="ai-tag">AI 채점 제안</span>
+                          {s.ai_score !== null && (
+                            <span className="ai-score">{s.ai_score}점 / {a ? a.max_score : 7}점</span>
+                          )}
+                        </div>
+                        {s.ai_feedback && <div className="ai-fb">{s.ai_feedback}</div>}
+                        <button
+                          type="button"
+                          className="ai-apply"
+                          onClick={() => {
+                            if (s.ai_score !== null) setScoreInput({ ...scoreInput, [s.id]: String(s.ai_score) });
+                            setFbInput({ ...fbInput, [s.id]: s.ai_feedback || '' });
+                          }}
+                        >
+                          이 내용 그대로 가져오기
+                        </button>
+                        <div className="ai-note">
+                          AI가 제안한 값입니다. 아래에서 자유롭게 고치실 수 있고, 학생에게 가는 것은 아래 내용입니다.
+                        </div>
+                      </div>
+                    )}
+
                     <div className="grade-row">
                       <label>점수 (0~{a ? a.max_score : 7})</label>
                       <input
                         type="number"
                         min={0}
                         max={a ? a.max_score : 7}
-                        value={scoreInput[s.id] !== undefined ? scoreInput[s.id] : (s.final_score !== null ? String(s.final_score) : '')}
+                        value={
+                          scoreInput[s.id] !== undefined
+                            ? scoreInput[s.id]
+                            : s.final_score !== null
+                              ? String(s.final_score)
+                              : s.ai_score !== null
+                                ? String(s.ai_score)
+                                : ''
+                        }
                         onChange={(e) => setScoreInput({ ...scoreInput, [s.id]: e.target.value })}
                       />
                     </div>
-                    <label className="fb-label">피드백</label>
+                    <label className="fb-label">피드백 — 학생에게 이대로 보입니다</label>
                     <textarea
-                      value={fbInput[s.id] !== undefined ? fbInput[s.id] : (s.final_feedback || '')}
+                      value={
+                        fbInput[s.id] !== undefined
+                          ? fbInput[s.id]
+                          : (s.final_feedback || s.ai_feedback || '')
+                      }
                       onChange={(e) => setFbInput({ ...fbInput, [s.id]: e.target.value })}
                       placeholder="학생에게 보낼 피드백을 작성하세요"
                     />
                     <button className="next-btn" onClick={() => publish(s)}>
                       {s.published_to_student ? '수정해서 다시 발송' : '점수 발송 → 학생에게 공개'}
                     </button>
+                    {s.published_to_student && (
+                      <div className="ai-note" style={{ marginTop: 10 }}>
+                        이미 발송된 제출물입니다. 고쳐서 다시 발송하면 학생 화면과 리포트 카드에 바로 반영됩니다.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
