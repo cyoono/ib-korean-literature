@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 :root {
   --navy: #1F3A6E;
@@ -275,3 +275,58 @@ body {
 .grade-row input { width: 90px; padding: 9px 12px; border: 1px solid #E5E5E5; font-family: inherit; font-size: 15px; }
 .fb-label { display: block; font-size: 13px; font-weight: 600; color: #1F3A6E; margin-bottom: 6px; }
 .sub-body textarea { width: 100%; min-height: 90px; padding: 12px; border: 1px solid #E5E5E5; font-family: inherit; font-size: 14px; line-height: 1.7; resize: vertical; }
+/* ───── 아이디·비밀번호 찾기 ───── */
+.modal .lead { font-size: 13px; color: #666; line-height: 1.6; margin: -10px 0 20px; }
+.modal .hint { font-size: 11.5px; color: #999; margin-top: 6px; line-height: 1.5; }
+
+.find-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 16px; }
+.find-sep { color: #DDD; font-size: 12px; }
+.link-btn {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-family: inherit; font-size: 12.5px; color: #1F3A6E; font-weight: 500;
+  text-decoration: underline; text-underline-offset: 3px;
+  text-decoration-color: rgba(31,58,110,0.35);
+}
+.link-btn:hover { color: #15294F; text-decoration-color: #1F3A6E; }
+
+.found-box { background: #F5F2E8; border-left: 3px solid #1F3A6E; padding: 18px 20px; margin-bottom: 4px; }
+.found-label { font-size: 11.5px; color: #888; letter-spacing: 1px; margin-bottom: 6px; }
+.found-email { font-family: 'Noto Serif KR', serif; font-size: 19px; color: #1F3A6E; font-weight: 700; word-break: break-all; }
+
+/* ───── AI 채점 제안 박스 ───── */
+.ai-box { background: #F5F7FB; border-left: 3px solid #2E5FAC; padding: 14px 16px; margin: 16px 0; }
+.ai-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.ai-tag { background: #2E5FAC; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 9px; letter-spacing: 0.5px; }
+.ai-score { font-size: 14px; font-weight: 700; color: #1F3A6E; }
+.ai-fb { font-size: 13.5px; color: #333; line-height: 1.7; margin-bottom: 10px; white-space: pre-wrap; }
+.ai-apply { background: #fff; border: 1px solid #2E5FAC; color: #2E5FAC; font-family: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 14px; cursor: pointer; }
+.ai-apply:hover { background: #2E5FAC; color: #fff; }
+.ai-note { font-size: 11.5px; color: #888; line-height: 1.6; margin-top: 8px; }
+
+/* ───── 리포트 카드 인쇄 ───── */
+.print-head { display: none; }
+.print-sign { display: none; }
+
+@media print {
+  /* 화면에서만 쓰는 것들은 숨긴다 */
+  .no-print, .t-header, .t-nav, .filter-row, header, nav, button { display: none !important; }
+
+  body { background: #fff; }
+  .container { max-width: 100%; margin: 0; padding: 0; }
+
+  .print-head { display: block; margin-bottom: 18px; border-bottom: 3px solid #1F3A6E; padding-bottom: 12px; }
+  .print-brand { font-family: 'Cormorant Garamond', serif; font-size: 13pt; letter-spacing: 3px; color: #1F3A6E; font-weight: 600; }
+  .print-title { font-family: 'Noto Serif KR', serif; font-size: 16pt; font-weight: 700; color: #1F3A6E; margin-top: 4px; }
+  .print-meta { display: flex; gap: 20px; font-size: 9.5pt; color: #555; margin-top: 10px; flex-wrap: wrap; }
+
+  table { font-size: 9.5pt; page-break-inside: auto; }
+  tr { page-break-inside: avoid; page-break-after: auto; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+
+  .print-sign { display: block; margin-top: 28px; text-align: right; }
+  .print-sign-line { font-size: 10pt; color: #333; }
+  .print-sign-rule { width: 180px; border-bottom: 1px solid #999; margin-left: auto; margin-top: 26px; }
+
+  @page { size: A4 portrait; margin: 14mm; }
+}
