@@ -25,6 +25,13 @@ export default function TeacherReportsPage() {
   const [subs, setSubs] = useState<Sub[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [loading, setLoading] = useState(true);
+  /* 인쇄물에 찍을 출력일. 서버에서 미리 그린 화면과 어긋나지 않도록
+     브라우저에 뜬 뒤에 채운다. */
+  const [printedAt, setPrintedAt] = useState('');
+
+  useEffect(() => {
+    setPrintedAt(new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }));
+  }, []);
 
   useEffect(() => {
     async function init() {
@@ -103,6 +110,7 @@ export default function TeacherReportsPage() {
 
   const groups = lessonsByMonth();
   const yt = selectedId ? yearTotal(selectedId) : null;
+  const selectedStudent = students.find((s) => s.id === selectedId);
 
   const cellStyle: React.CSSProperties = { border: '1px solid #ddd', padding: '8px 10px', fontSize: 14, textAlign: 'center' };
   const headStyle: React.CSSProperties = { ...cellStyle, background: NAVY, color: '#fff', fontWeight: 600 };
@@ -111,11 +119,11 @@ export default function TeacherReportsPage() {
     <>
       <TeacherHeader teacherName={teacherName} />
 
-      <div className="container">
-        <h1 style={{ color: NAVY, fontSize: 22, marginBottom: 16 }}>연간 리포트 카드</h1>
+      <div className="container report-print">
+        <h1 className="no-print" style={{ color: NAVY, fontSize: 22, marginBottom: 16 }}>연간 리포트 카드</h1>
 
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ fontSize: 14, fontWeight: 600, marginRight: 10 }}>학생 선택</label>
+        <div className="no-print" style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <label style={{ fontSize: 14, fontWeight: 600 }}>학생 선택</label>
           <select
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
@@ -126,12 +134,31 @@ export default function TeacherReportsPage() {
               <option key={s.id} value={s.id}>{s.name} ({s.email})</option>
             ))}
           </select>
+          {selectedId && (
+            <button
+              onClick={() => window.print()}
+              style={{ background: NAVY, color: '#fff', border: 'none', padding: '9px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+            >
+              인쇄 / PDF 저장
+            </button>
+          )}
         </div>
 
         {!selectedId ? (
           <div className="empty-note">학생을 선택하면 연간 성적표가 표시됩니다.</div>
         ) : (
           <>
+            {/* 인쇄할 때만 나오는 머리글 */}
+            <div className="print-head">
+              <div className="print-brand">SATUS · 세터스 어학원</div>
+              <div className="print-title">IB 글로컬 K-문학 · 연간 리포트 카드</div>
+              <div className="print-meta">
+                <span><strong>{selectedStudent ? selectedStudent.name : ''}</strong></span>
+                <span>{selectedStudent ? selectedStudent.email : ''}</span>
+                <span>출력일 {printedAt}</span>
+              </div>
+            </div>
+
             <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8 }}>
               <thead>
                 <tr>
@@ -185,6 +212,10 @@ export default function TeacherReportsPage() {
             <p style={{ fontSize: 13, color: '#888', marginTop: 12 }}>
               ※ 선생님이 발송한 점수만 반영됩니다. 미제출·미발송 과제는 –로 표시됩니다.
             </p>
+            <div className="print-sign">
+              <div className="print-sign-line">담당 강사 {teacherName}</div>
+              <div className="print-sign-rule" />
+            </div>
           </>
         )}
       </div>
