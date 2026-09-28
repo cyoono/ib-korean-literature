@@ -146,18 +146,19 @@ export default function LessonPage() {
             mode: 'prequestion',
             prompt: q.question,
             answer: ans,
-            reference: q.correct_answer,
             lessonTitle: lesson ? '제' + lesson.lesson_number + '강' : '',
             passage: lesson && lesson.passage ? lesson.passage : '',
           }),
         });
         const r = await res.json();
         if (typeof r.correct === 'boolean') {
-          results[q.id] = r.correct || exact;
-          if (r.feedback) fbs[q.id] = r.feedback;
+          /* 저장된 정답 문자열은 쓰지 않고, 질문과 본문만으로 AI가 새로 판단한 결과를 따른다 */
+          results[q.id] = r.correct;
+          const fb = (r.feedback || '') + (r.modelAnswer ? '\n\n📘 모범 답안\n' + r.modelAnswer : '');
+          if (fb.trim()) fbs[q.id] = fb.trim();
           /* 끝난 질문부터 바로 보여 준다 */
           setPqResults((prev) => ({ ...prev, [q.id]: results[q.id] }));
-          if (r.feedback) setPqFeedback((prev) => ({ ...prev, [q.id]: r.feedback }));
+          if (fb.trim()) setPqFeedback((prev) => ({ ...prev, [q.id]: fb.trim() }));
           return;
         }
       } catch {
@@ -353,11 +354,6 @@ export default function LessonPage() {
                     {pqResults[q.id] ? '✓ 정답입니다!' : '✗ 아쉬워요 — 아래 피드백을 확인해 보세요. 그래도 진행할 수 있습니다.'}
                     {pqFeedback[q.id] && (
                       <div style={{ whiteSpace: 'pre-wrap', marginTop: 8, lineHeight: 1.7, fontWeight: 400, color: '#333' }}>{pqFeedback[q.id]}</div>
-                    )}
-                    {q.correct_answer && q.correct_answer.trim() && (
-                      <div style={{ marginTop: 10, padding: '8px 12px', background: '#eef3fb', borderLeft: '3px solid #1F3A6E', color: '#1F3A6E', fontWeight: 400, whiteSpace: 'pre-wrap' }}>
-                        <b>모범 답안</b>{'\n'}{q.correct_answer.split('|').map((c) => c.trim()).filter(Boolean).join(' / ')}
-                      </div>
                     )}
                   </div>
                 )}

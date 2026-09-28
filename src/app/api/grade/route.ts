@@ -51,7 +51,7 @@ async function callModel(apiKey: string, system: string, messages: Msg[], model 
   return textBlock && textBlock.text ? (textBlock.text as string) : '';
 }
 
-function parse(rawIn: string): { score?: number; correct?: boolean; feedback?: string } | null {
+function parse(rawIn: string): { score?: number; correct?: boolean; feedback?: string; model_answer?: string } | null {
   let raw = rawIn.replace(/```json/g, '').replace(/```/g, '').trim();
   const s = raw.indexOf('{');
   const e = raw.lastIndexOf('}');
@@ -66,7 +66,7 @@ function parse(rawIn: string): { score?: number; correct?: boolean; feedback?: s
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as GradeRequest;
-    const { prompt, answer, maxScore = 7, workTitle = '', lessonTitle = '', passage = '', mode = 'assignment', reference = '' } = body;
+    const { prompt, answer, maxScore = 7, workTitle = '', lessonTitle = '', passage = '', mode = 'assignment' } = body;
     const isPq = mode === 'prequestion';
 
     if (!answer || answer.trim() === '') {
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
         : []),
       '채점 원칙:',
       isPq
-        ? '1. 이것은 강의 전 "사전 질문"에 대한 짧은 답이다. [참고 답안]과 [본문]에 비추어 핵심을 맞게 짚었으면 correct=true, 아니면 false. 표현이 달라도 뜻이 맞으면 정답으로 본다.'
+        ? '1. 이것은 강의 전 "사전 질문"에 대한 짧은 답이다. 먼저 [사전 질문]을 정확히 읽고, [본문]만 근거로 이 질문의 올바른 답을 스스로 정한다(model_answer). 그 기준으로 학생 답이 질문이 묻는 핵심을 맞게 짚었으면 correct=true, 아니면 false. 표현이 달라도 뜻이 맞으면 정답으로 본다. 질문이 묻지 않은 것을 기준으로 삼지 않는다.'
         : `1. 점수는 0부터 ${maxScore}까지의 정수 하나만 부여한다 (소수점 금지).`,
       `2. 문항이 요구하는 핵심 논점을 얼마나 충실히 다루는지, ${src}의 근거가 정확한지를 우선 평가한다.`,
       '3. 단순 줄거리 요약이나 문항과 무관한 내용은 감점한다.',
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
       '5. 반드시 아래 JSON 형식만 출력한다. 다른 텍스트나 마크다운 백틱은 금지한다.',
       '',
       isPq
-        ? '출력 형식: {"correct": <true 또는 false>, "feedback": "<5줄, 줄 사이는 \\n>"}'
+        ? '출력 형식: {"model_answer": "<본문에 근거한 모범 답 1~3문장>", "correct": <true 또는 false>, "feedback": "<5줄, 줄 사이는 \\n>"}'
         : '출력 형식: {"score": <0-' + maxScore + ' 정수>, "feedback": "<5줄, 줄 사이는 \\n>"}',
     ].join('\n');
 
@@ -141,7 +141,6 @@ export async function POST(req: NextRequest) {
       hasPassage
         ? (restrict ? '[본문] (채점과 피드백의 유일한 근거)\n' : '[본문] (이번 회차 발췌문 — 참고용, 근거를 여기에 한정하지 않음)\n') + safePassage + '\n'
         : '',
-      isPq && reference ? '[참고 답안] (선생님이 정한 모범 답. 학생에게 그대로 알려 주지 말고 판단 기준으로만 쓸 것)\n' + reference + '\n' : '',
       isPq ? '[사전 질문]' : '[문항]',
       prompt,
       '',
@@ -187,7 +186,8 @@ export async function POST(req: NextRequest) {
     if (isPq) {
       let fbPq = (parsed.feedback || '').toString().trim().replace(/\\n/g, '\n');
       if (fbPq.length > 1500) fbPq = fbPq.slice(0, 1500);
-      return NextResponse.json({ correct: parsed.correct === true, feedback: fbPq });
+      const modelAnswer = (parsed.model_answer || '').toString().trim();
+      return NextResponse.json({ correct: parsed.correct === true, feedback: fbPq, modelAnswer });
     }
 
     const score = typeof parsed.score === 'number' ? Math.round(parsed.score) : null;

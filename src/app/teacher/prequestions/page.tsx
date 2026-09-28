@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import TeacherHeader from '@/app/components/TeacherHeader';
 
-type Lesson = { id: string; lesson_number: number; title: string };
+type Lesson = { id: string; lesson_number: number; title: string; passage: string | null };
 type PreQ = { id: string; lesson_id: string; order_index: number; question: string; correct_answer: string };
 type Ans = { user_id: string; prequestion_id: string; answer: string; is_correct: boolean; ai_feedback?: string | null };
 type Person = { id: string; name: string | null; email: string; role: string };
@@ -21,6 +21,8 @@ export default function PrequestionAnswersPage() {
   const [teacherName, setTeacherName] = useState('');
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(true);
+  const [regrading, setRegrading] = useState(false);
+  const [progress, setProgress] = useState('');
 
   useEffect(() => {
     async function load() {
@@ -31,7 +33,7 @@ export default function PrequestionAnswersPage() {
       setTeacherName(me.name);
 
       const [lRes, qRes, aRes, pRes] = await Promise.all([
-        supabase.from('lessons').select('id, lesson_number, title').order('lesson_number'),
+        supabase.from('lessons').select('id, lesson_number, title, passage').order('lesson_number'),
         supabase.from('prequestions').select('id, lesson_id, order_index, question, correct_answer').order('order_index'),
         supabase.from('prequestion_answers').select('*'),
         supabase.from('profiles').select('id, name, email, role'),
@@ -47,6 +49,61 @@ export default function PrequestionAnswersPage() {
     }
     load();
   }, []);
+
+  /* 선택한 회차의 모든 사전 질문 답을, 저장된 정답은 무시하고 질문과 본문만으로 새로 채점 */
+  async function regradeAll() {
+    const lesson = lessons.find((l) => l.id === lessonId);
+    const qsHere = pqs.filter((q) => q.lesson_id === lessonId);
+    const ids = new Set(qsHere.map((q) => q.id));
+    const targets = answers.filter((a) => ids.has(a.prequestion_id));
+    if (targets.length === 0) { setMsg('다시 채점할 답이 없습니다.'); return; }
+    if (!window.confirm('제' + (lesson ? lesson.lesson_number : '') + '강 사전 질문 답 ' + targets.length + '개를 모두 새로 채점합니다. 기존 정오 판정과 피드백은 새 결과로 바뀝니다. 진행할까요?')) return;
+    setRegrading(true);
+    setMsg('');
+    let done = 0;
+    let failed = 0;
+    const updated = [...answers];
+    /* 한꺼번에 몰리지 않게 3개씩 */
+    for (let i = 0; i < targets.length; i += 3) {
+      await Promise.all(targets.slice(i, i + 3).map(async (a) => {
+        const q = qsHere.find((x) => x.id === a.prequestion_id);
+        if (!q) return;
+        try {
+          const res = await fetch('/api/grade', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mode: 'prequestion',
+              prompt: q.question,
+              answer: a.answer,
+              lessonTitle: lesson ? '제' + lesson.lesson_number + '강' : '',
+              passage: lesson && lesson.passage ? lesson.passage : '',
+            }),
+          });
+          const r = await res.json();
+          if (typeof r.correct !== 'boolean') { failed++; return; }
+          const fb = ((r.feedback || '') + (r.modelAnswer ? '\n\n📘 모범 답안\n' + r.modelAnswer : '')).trim();
+          const { error } = await supabase
+            .from('prequestion_answers')
+            .update({ is_correct: r.correct, ai_feedback: fb })
+            .eq('user_id', a.user_id)
+            .eq('prequestion_id', a.prequestion_id);
+          if (error) { failed++; setMsg('저장 실패: ' + error.message); return; }
+          const k = updated.findIndex((x) => x.user_id === a.user_id && x.prequestion_id === a.prequestion_id);
+          if (k >= 0) updated[k] = { ...updated[k], is_correct: r.correct, ai_feedback: fb };
+        } catch {
+          failed++;
+        } finally {
+          done++;
+          setProgress(done + ' / ' + targets.length);
+        }
+      }));
+      setAnswers([...updated]);
+    }
+    setRegrading(false);
+    setProgress('');
+    setMsg('새로 채점 완료: ' + (done - failed) + '개' + (failed ? ' · 실패 ' + failed + '개 (다시 눌러 주세요)' : ''));
+  }
 
   if (loading) return <div className="loading-note">불러오는 중...</div>;
 
@@ -77,6 +134,22 @@ export default function PrequestionAnswersPage() {
           ))}
         </div>
 
+        {qs.length > 0 && studentIds.length > 0 && (
+          <div style={{ margin: '4px 0 16px' }}>
+            <button
+              onClick={regradeAll}
+              disabled={regrading}
+              className="next-btn"
+              style={{ opacity: regrading ? 0.6 : 1 }}
+            >
+              {regrading ? '새로 채점 중... ' + progress : '↻ 이 회차 답 전부 새로 채점'}
+            </button>
+            <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
+              예전에 입력한 정답은 쓰지 않고, 질문과 본문만 보고 AI가 다시 판정합니다.
+            </div>
+          </div>
+        )}
+
         {qs.length === 0 ? (
           <div className="empty-note">이 회차에는 사전 질문이 없습니다.</div>
         ) : studentIds.length === 0 ? (
@@ -100,7 +173,6 @@ export default function PrequestionAnswersPage() {
                     {mine.map(({ q, a }) => (
                       <div key={q.id} style={{ borderTop: '1px solid #eee', padding: '12px 0' }}>
                         <div style={{ fontWeight: 600 }}>{q.order_index}. {q.question}</div>
-                        <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>참고 답안: {q.correct_answer}</div>
                         {a ? (
                           <>
                             <div style={{ marginTop: 6 }}>
