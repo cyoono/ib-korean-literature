@@ -350,7 +350,7 @@ export default function LessonsPage() {
             <textarea style={{ ...inputStyle, minHeight: 60 }} value={a.prompt} placeholder="문항 내용" onChange={(e) => { const c = [...asgs]; c[i].prompt = e.target.value; setAsgs(c); }} />
             <div style={{ display: 'flex', gap: 12 }}>
               <div><label style={{ fontSize: 12 }}>최소 글자수</label><input style={inputStyle} type="number" value={a.min_chars} onChange={(e) => { const c = [...asgs]; c[i].min_chars = e.target.value; setAsgs(c); }} /></div>
-              <div><label style={{ fontSize: 12 }}>최대 글자수</label><input style={inputStyle} type="number" value={a.max_chars} onChange={(e) => { const c = [...asgs]; c[i].max_chars = e.target.value; setAsgs(c); }} /></div>
+              <div><label style={{ fontSize: 12 }}>최대 분량</label><div style={{ ...inputStyle, background: '#f5f5f5', color: '#666' }}>1000단어 (고정)</div></div>
               <div><label style={{ fontSize: 12 }}>만점</label><input style={inputStyle} type="number" value={a.max_score} onChange={(e) => { const c = [...asgs]; c[i].max_score = e.target.value; setAsgs(c); }} /></div>
             </div>
           </div>

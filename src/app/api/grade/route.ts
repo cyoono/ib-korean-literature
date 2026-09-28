@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 비용 가드
-    const safeAnswer = answer.length > 4000 ? answer.slice(0, 4000) : answer;
+    const safeAnswer = answer.length > 12000 ? answer.slice(0, 12000) : answer; // 1000단어 과제 수용
     const safePassage = passage.length > 15000 ? passage.slice(0, 15000) : passage;
     const hasPassage = safePassage.trim() !== '';
 

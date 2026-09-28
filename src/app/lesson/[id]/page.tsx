@@ -16,6 +16,14 @@ type Lesson = {
   lecture_video_url: string | null;
 };
 
+/* 단어 수: 띄어쓰기 기준 */
+const PQ_MAX_WORDS = 250;
+const ASG_MAX_WORDS = 1000;
+function wordCount(t: string) {
+  const s = t.trim();
+  return s === '' ? 0 : s.split(/\s+/).length;
+}
+
 type PreQ = { id: string; order_index: number; question: string; correct_answer: string };
 type Assignment = { id: string; order_index: number; title: string; prompt: string; min_chars: number | null; max_chars: number | null; max_score: number };
 type Submission = { assignment_id: string; content: string; final_score: number | null; final_feedback: string | null; published_to_student: boolean };
@@ -175,6 +183,10 @@ export default function LessonPage() {
 
  async function submitAsg(a: Assignment) {
     const content = (asgInputs[a.id] || '').trim();
+    if (wordCount(content) > ASG_MAX_WORDS) {
+      alert('과제는 최대 ' + ASG_MAX_WORDS + '단어까지 제출할 수 있습니다. (현재 ' + wordCount(content) + '단어)');
+      return;
+    }
     if (a.min_chars && content.length < a.min_chars) {
       alert('최소 ' + a.min_chars + '자 이상 작성해 주세요. (현재 ' + content.length + '자)');
       return;
@@ -314,12 +326,18 @@ export default function LessonPage() {
             {prequestions.map((q) => (
               <div className="pq-item" key={q.id}>
                 <div className="q">{q.order_index}. {q.question}</div>
-                <input
+                <textarea
                   value={pqInputs[q.id] || ''}
                   onChange={(e) => setPqInputs({ ...pqInputs, [q.id]: e.target.value })}
-                  placeholder="답을 입력하세요"
+                  placeholder="본문에서 근거를 찾아 답을 쓰세요 (최대 250단어)"
                   disabled={pqGraded}
+                  rows={3}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #ccc', fontSize: 14, fontFamily: 'inherit', resize: 'vertical' }}
                 />
+                <div style={{ fontSize: 12, textAlign: 'right', color: wordCount(pqInputs[q.id] || '') > PQ_MAX_WORDS ? '#B23A48' : '#888' }}>
+                  {wordCount(pqInputs[q.id] || '')} / {PQ_MAX_WORDS}단어
+                  {wordCount(pqInputs[q.id] || '') > PQ_MAX_WORDS ? ' — 250단어 이내로 줄여 주세요' : ''}
+                </div>
                 {pqGraded && (
                   <div className={'pq-result ' + (pqResults[q.id] ? 'ok' : 'no')}>
                     {pqResults[q.id] ? '✓ 정답입니다!' : '✗ 아쉬워요 — 아래 피드백을 확인해 보세요. 그래도 진행할 수 있습니다.'}
@@ -333,7 +351,7 @@ export default function LessonPage() {
             {!pqGraded ? (
               <button
                 className="next-btn"
-                disabled={pqGrading || prequestions.some((q) => !(pqInputs[q.id] || '').trim())}
+                disabled={pqGrading || prequestions.some((q) => !(pqInputs[q.id] || '').trim() || wordCount(pqInputs[q.id] || '') > PQ_MAX_WORDS)}
                 onClick={gradePq}
               >
                 {pqGrading ? 'AI가 답을 살펴보는 중... (10~20초)' : '채점하기'}
@@ -382,11 +400,13 @@ export default function LessonPage() {
             {assignments.map((a) => {
               const sub = subFor(a.id);
               const len = (asgInputs[a.id] || '').length;
+              const words = wordCount(asgInputs[a.id] || '');
+              const over = words > ASG_MAX_WORDS;
               return (
                 <div className="asg-card" key={a.id}>
                   <div className="a-title">과제 {a.order_index}. {a.title}</div>
                   <div className="a-prompt">{a.prompt}</div>
-                  <div className="a-guide">권장 분량: {a.min_chars}~{a.max_chars}자 · {a.max_score}점 만점</div>
+                  <div className="a-guide">최대 {ASG_MAX_WORDS}단어{a.min_chars ? ' · 최소 ' + a.min_chars + '자' : ''} · {a.max_score}점 만점</div>
                   {sub ? (
                     <>
                       <div className="my-answer">{sub.content}</div>
@@ -407,11 +427,13 @@ export default function LessonPage() {
                         value={asgInputs[a.id] || ''}
                         onChange={(e) => setAsgInputs({ ...asgInputs, [a.id]: e.target.value })}
                         placeholder="여기에 답안을 작성하세요"
-                        maxLength={a.max_chars || undefined}
                       />
                       <div className="char-row">
-                        <span className="char-count">{len}자{a.min_chars ? ' (최소 ' + a.min_chars + '자)' : ''}</span>
-                        <button className="submit-asg" disabled={saving || len === 0} onClick={() => submitAsg(a)}>제출하기</button>
+                        <span className="char-count" style={{ color: over ? '#B23A48' : undefined }}>
+                          {words} / {ASG_MAX_WORDS}단어 · {len}자{a.min_chars ? ' (최소 ' + a.min_chars + '자)' : ''}
+                          {over ? ' — 1000단어 이내로 줄여 주세요' : ''}
+                        </span>
+                        <button className="submit-asg" disabled={saving || len === 0 || over} onClick={() => submitAsg(a)}>제출하기</button>
                       </div>
                     </>
                   )}
