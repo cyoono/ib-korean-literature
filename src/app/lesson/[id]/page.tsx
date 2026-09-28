@@ -36,6 +36,8 @@ export default function LessonPage() {
   const [pqInputs, setPqInputs] = useState<Record<string, string>>({});
   const [pqResults, setPqResults] = useState<Record<string, boolean>>({});
   const [pqGraded, setPqGraded] = useState(false);
+  const [pqFeedback, setPqFeedback] = useState<Record<string, string>>({});
+  const [pqGrading, setPqGrading] = useState(false);
   const [asgInputs, setAsgInputs] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -57,7 +59,7 @@ export default function LessonPage() {
         supabase.from('prequestions').select('*').eq('lesson_id', lessonId).order('order_index'),
         supabase.from('assignments').select('*').eq('lesson_id', lessonId).order('order_index'),
         supabase.from('submissions').select('assignment_id, content, final_score, final_feedback, published_to_student').eq('user_id', user.id),
-        supabase.from('prequestion_answers').select('prequestion_id, answer, is_correct').eq('user_id', user.id),
+        supabase.from('prequestion_answers').select('*').eq('user_id', user.id),
         supabase.from('lesson_progress').select('current_step, steps_completed').eq('user_id', user.id).eq('lesson_id', lessonId).maybeSingle(),
       ]);
 
@@ -71,17 +73,20 @@ export default function LessonPage() {
       const pqa = pqaRes.data || [];
       const inputs: Record<string, string> = {};
       const results: Record<string, boolean> = {};
+      const fbs: Record<string, string> = {};
       let answered = 0;
       for (const q of pqs) {
         const found = pqa.find((x) => x.prequestion_id === q.id);
         if (found) {
           inputs[q.id] = found.answer;
           results[q.id] = !!found.is_correct;
+          if (found.ai_feedback) fbs[q.id] = found.ai_feedback;
           answered++;
         }
       }
       setPqInputs(inputs);
       setPqResults(results);
+      setPqFeedback(fbs);
       if (pqs.length > 0 && answered === pqs.length) setPqGraded(true);
 
       if (progRes.data) {
@@ -115,22 +120,58 @@ export default function LessonPage() {
   }
 
   async function gradePq() {
+    setPqGrading(true);
     const results: Record<string, boolean> = {};
-    for (const q of prequestions) {
-      const ans = (pqInputs[q.id] || '').trim().toLowerCase();
-      const ok = q.correct_answer.split('|').map((c) => c.trim().toLowerCase()).includes(ans);
-      results[q.id] = ok;
-    }
+    const fbs: Record<string, string> = {};
+    /* 사전 질문마다 AI가 본문 기준으로 정오 판단 + 5줄 피드백. 실패하면 예전처럼 정답 문자열 비교 */
+    await Promise.all(prequestions.map(async (q) => {
+      const ans = (pqInputs[q.id] || '').trim();
+      const exact = q.correct_answer.split('|').map((c) => c.trim().toLowerCase()).includes(ans.toLowerCase());
+      try {
+        const res = await fetch('/api/grade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: 'prequestion',
+            prompt: q.question,
+            answer: ans,
+            reference: q.correct_answer,
+            lessonTitle: lesson ? '제' + lesson.lesson_number + '강' : '',
+            passage: lesson && lesson.passage ? lesson.passage : '',
+          }),
+        });
+        const r = await res.json();
+        if (typeof r.correct === 'boolean') {
+          results[q.id] = r.correct || exact;
+          if (r.feedback) fbs[q.id] = r.feedback;
+          return;
+        }
+      } catch {
+        /* 아래 기본 판정으로 */
+      }
+      results[q.id] = exact;
+    }));
     setPqResults(results);
+    setPqFeedback(fbs);
     setPqGraded(true);
+    setPqGrading(false);
     const rows = prequestions.map((q) => ({
       user_id: userId,
       prequestion_id: q.id,
       answer: pqInputs[q.id] || '',
       is_correct: results[q.id],
+      ai_feedback: fbs[q.id] || null,
     }));
-    await supabase.from('prequestion_answers').upsert(rows, { onConflict: 'user_id,prequestion_id' });
+    const { error } = await supabase.from('prequestion_answers').upsert(rows, { onConflict: 'user_id,prequestion_id' });
+    if (error) {
+      /* ai_feedback 칸이 아직 없는 DB라면 피드백 없이 저장 */
+      await supabase.from('prequestion_answers').upsert(
+        rows.map(({ ai_feedback: _omit, ...rest }) => rest),
+        { onConflict: 'user_id,prequestion_id' }
+      );
+    }
   }
+
 
  async function submitAsg(a: Assignment) {
     const content = (asgInputs[a.id] || '').trim();
@@ -281,7 +322,10 @@ export default function LessonPage() {
                 />
                 {pqGraded && (
                   <div className={'pq-result ' + (pqResults[q.id] ? 'ok' : 'no')}>
-                    {pqResults[q.id] ? '✓ 정답입니다!' : '✗ 아쉬워요 — 강의에서 확인해 보세요. 그래도 진행할 수 있습니다.'}
+                    {pqResults[q.id] ? '✓ 정답입니다!' : '✗ 아쉬워요 — 아래 피드백을 확인해 보세요. 그래도 진행할 수 있습니다.'}
+                    {pqFeedback[q.id] && (
+                      <div style={{ whiteSpace: 'pre-wrap', marginTop: 8, lineHeight: 1.7, fontWeight: 400, color: '#333' }}>{pqFeedback[q.id]}</div>
+                    )}
                   </div>
                 )}
               </div>
@@ -289,13 +333,23 @@ export default function LessonPage() {
             {!pqGraded ? (
               <button
                 className="next-btn"
-                disabled={prequestions.some((q) => !(pqInputs[q.id] || '').trim())}
+                disabled={pqGrading || prequestions.some((q) => !(pqInputs[q.id] || '').trim())}
                 onClick={gradePq}
               >
-                채점하기
+                {pqGrading ? 'AI가 답을 살펴보는 중... (10~20초)' : '채점하기'}
               </button>
             ) : (
-              <button className="next-btn" onClick={() => completeStep(2)}>완료하고 다음으로 →</button>
+              <>
+                <button className="next-btn" onClick={() => completeStep(2)}>완료하고 다음으로 →</button>
+                {teacherView && (
+                  <button
+                    onClick={() => { setPqGraded(false); setPqFeedback({}); setPqResults({}); }}
+                    style={{ marginLeft: 8, background: '#eee', border: 'none', padding: '10px 18px', fontSize: 14, cursor: 'pointer' }}
+                  >
+                    ↻ 다시 풀어 보기 (선생님 미리보기)
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
