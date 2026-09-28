@@ -169,6 +169,7 @@ export default function LessonPage() {
             maxScore: a.max_score || 7,
             workTitle: lesson ? lesson.title : '',
             lessonTitle: lesson ? '제' + lesson.lesson_number + '강' : '',
+            passage: lesson && lesson.passage ? lesson.passage : '',
           }),
         });
         const result = await res.json();
@@ -332,6 +333,11 @@ export default function LessonPage() {
                   <div className="a-title">과제 {a.order_index}. {a.title}</div>
                   <div className="a-prompt">{a.prompt}</div>
                   <div className="a-guide">권장 분량: {a.min_chars}~{a.max_chars}자 · {a.max_score}점 만점</div>
+                  {lesson.passage && (
+                    <div className="a-guide" style={{ color: '#B23A48', fontWeight: 600 }}>
+                      ※ 이번 회차에 주어진 본문에서만 근거를 찾아 답하세요. 본문에 없는 내용은 근거로 인정되지 않습니다.
+                    </div>
+                  )}
                   {sub ? (
                     <>
                       <div className="my-answer">{sub.content}</div>
@@ -351,7 +357,7 @@ export default function LessonPage() {
                       <textarea
                         value={asgInputs[a.id] || ''}
                         onChange={(e) => setAsgInputs({ ...asgInputs, [a.id]: e.target.value })}
-                        placeholder="여기에 답안을 작성하세요"
+                        placeholder="본문의 표현을 인용하며 답안을 작성하세요"
                         maxLength={a.max_chars || undefined}
                       />
                       <div className="char-row">
