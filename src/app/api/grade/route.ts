@@ -49,7 +49,7 @@ async function callModel(apiKey: string, system: string, messages: Msg[], model 
   return textBlock && textBlock.text ? (textBlock.text as string) : '';
 }
 
-type Parsed = { score?: number; correct?: boolean; verdict?: string; feedback?: string; model_answer?: string; A?: number; B?: number; C?: number; D?: number };
+type Parsed = { score?: number; correct?: boolean; verdict?: string; grade?: string; feedback?: string; model_answer?: string; A?: number; B?: number; C?: number; D?: number };
 function parse(rawIn: string): Parsed | null {
   let raw = rawIn.replace(/```json/g, '').replace(/```/g, '').trim();
   const s = raw.indexOf('{');
@@ -148,23 +148,28 @@ export async function POST(req: NextRequest) {
       '- 근거는 오직 [본문]이다. 이 작품의 다른 부분, 결말, 작가 생애, 해설 지식은 알고 있더라도 쓰지 않는다.',
       '- 피드백과 모범 답안에서 작은따옴표로 인용하는 말은 [본문] 또는 [학생 답안]에 글자 그대로 있는 구절이어야 한다.',
       '',
-      '채점 순서 (속으로 생각하고, 결과만 JSON으로 낸다):',
-      '1) [사전 질문]이 정확히 무엇을 묻는지 파악한다. 질문이 묻지 않은 것은 기준으로 삼지 않는다.',
-      '2) [본문]에서 답의 근거가 되는 구절을 찾는다.',
-      '3) 그 구절을 근거로 model_answer를 1~3문장으로 쓴다. 근거 구절을 작은따옴표로 한 번 이상 인용한다.',
-      '4) [학생 답안]을 model_answer와 대조해, 맞게 짚은 요소와 빠지거나 틀린 요소를 구분한다.',
-      '5) verdict를 정한다: 핵심을 모두 맞게 짚으면 "정답", 핵심 일부만 맞거나 근거 없이 결론만 맞으면 "부분 정답", 질문과 어긋나거나 본문과 다르면 "오답". 표현이 달라도 뜻이 같으면 맞은 것으로 본다.',
+      '평가의 두 축:',
+      '① 질문과 답의 상관관계: 학생 답이 [사전 질문]이 실제로 묻는 것에 정면으로 답하는가? 질문의 일부만 답했거나, 질문과 다른 것을 말했거나, 질문을 되풀이하기만 했는지 본다.',
+      '② 팩트 체크: 학생 답에 담긴 사실(인물, 사건, 순서, 시간, 장소, 누가 무엇을 했는지, 인용한 표현)이 [본문]과 일치하는가? 본문과 다르거나 본문에 없는 내용이 있으면 정확히 짚는다.',
       '',
-      '피드백: 학생이 직접 읽는다. 존댓말, 정확히 5줄, 줄 사이는 \\n. 각 줄 1~2문장.',
-      '   1줄: "✔ 맞게 짚은 점: " — 학생 답의 표현을 작은따옴표로 인용하고, 그것이 본문의 어느 구절과 맞닿는지 인용해 설명한다.',
-      '   2줄: "✔ 맞게 짚은 점: " — 두 번째로 맞은 요소. 없으면 학생 답에서 살릴 만한 출발점을 구체적으로 짚는다.',
-      '   3줄: "△ 아쉬운 점: " — 빠진 핵심이나 잘못 이해한 부분을 분명히 말하고, 본문 구절을 인용해 바로잡는다.',
-      '   4줄: "△ 아쉬운 점: " — 두 번째 보완점 (근거 없이 단정, 질문의 일부에만 답함, 표현이 모호함 등). 정답이면 더 정확하게 쓰는 방법을 제안한다.',
-      '   5줄: "→ 다음에는: " — 본문에서 다시 읽어 볼 구절 하나를 인용하고, 그것을 넣어 답을 어떻게 고쳐 쓰면 되는지 한 문장 예시로 보여 준다.',
-      '   "좋습니다", "더 생각해 보세요"처럼 내용 없는 말은 쓰지 않는다. 모든 줄에 학생 답이나 본문의 구체적 표현이 들어가야 한다.',
+      '등급 (grade):',
+      '- A: 질문에 정면으로 답했고, 사실이 모두 본문과 맞으며, 본문 근거까지 제시했다.',
+      '- B: 질문에 맞게 답했고 사실도 맞지만, 근거가 약하거나 표현이 다소 모호하다.',
+      '- C: 질문의 핵심 일부만 답했거나, 사실은 맞지만 질문과의 연결이 느슨하다.',
+      '- D: 질문과 어긋난 부분이 크거나, 본문과 다른 사실이 섞여 있다.',
+      '- F: 질문과 무관하거나, 핵심 사실이 본문과 틀렸거나, 사실상 답이 없다.',
+      '',
+      '먼저 속으로 [사전 질문]이 묻는 것을 파악하고, [본문]에서 답의 근거 구절을 찾아 model_answer(1~3문장, 근거 구절 인용 포함)를 정한 뒤, 학생 답을 두 축으로 대조해 등급을 매긴다.',
+      '',
+      '피드백: 학생이 직접 읽는다. 존댓말, 3~5줄, 줄 사이는 \\n. 각 줄 1~2문장. 아래 머리말을 써서 두 축을 중심으로 쓴다.',
+      '   "🎯 질문과의 연결: " — 답이 질문에 얼마나 정면으로 답했는지, 빠진 부분이 무엇인지. (필수, 1줄)',
+      '   "🔎 팩트 체크: " — 답 속 사실이 본문과 맞는지. 맞으면 해당 본문 구절을 인용해 확인해 주고, 틀리면 학생 표현을 인용한 뒤 본문 구절로 바로잡는다. (필수, 1~2줄)',
+      '   "→ 다음에는: " — 본문에서 다시 볼 구절 하나를 인용하고, 답을 어떻게 고치면 되는지 짧게 제시한다. (필수, 1줄)',
+      '   필요하면 "✔ 잘한 점: " 한 줄을 맨 앞에 더할 수 있다.',
+      '   "좋습니다", "더 생각해 보세요"처럼 내용 없는 말은 쓰지 않는다.',
       '',
       '반드시 아래 JSON만 출력한다. 다른 텍스트나 백틱 금지.',
-      '{"verdict": "정답" | "부분 정답" | "오답", "model_answer": "<본문 근거 인용을 포함한 모범 답 1~3문장>", "feedback": "<5줄, 줄 사이는 \\n>"}',
+      '{"grade": "A" | "B" | "C" | "D" | "F", "model_answer": "<본문 근거 인용을 포함한 모범 답 1~3문장>", "feedback": "<3~5줄, 줄 사이는 \\n>"}',
     ].join('\n');
 
     const userPrompt = [
@@ -207,7 +212,7 @@ export async function POST(req: NextRequest) {
         });
         const raw2 = await callModel(apiKey, sysUsed, messages, useModel, useMax);
         const parsed2 = parse(raw2);
-        if (parsed2 && (typeof parsed2.A === 'number' || typeof parsed2.verdict === 'string') && parsed2.feedback) {
+        if (parsed2 && (typeof parsed2.A === 'number' || typeof parsed2.grade === 'string') && parsed2.feedback) {
           raw = raw2;
           parsed = parsed2;
         }
@@ -222,9 +227,10 @@ export async function POST(req: NextRequest) {
       let fbPq = (parsed.feedback || '').toString().trim().replace(/\\n/g, '\n');
       if (fbPq.length > 1500) fbPq = fbPq.slice(0, 1500);
       const modelAnswer = (parsed.model_answer || '').toString().trim();
-      const v = (parsed.verdict || '').toString().replace(/\s/g, '');
-      const verdict = v === '정답' ? '정답' : v === '부분정답' ? '부분 정답' : '오답';
-      return NextResponse.json({ correct: verdict === '정답', verdict, feedback: fbPq, modelAnswer });
+      const g = (parsed.grade || '').toString().trim().toUpperCase().charAt(0);
+      const grade = ['A', 'B', 'C', 'D', 'F'].includes(g) ? g : 'F';
+      /* A·B는 통과(정답 처리), C 이하는 보완 필요 */
+      return NextResponse.json({ correct: grade === 'A' || grade === 'B', grade, verdict: grade, feedback: fbPq, modelAnswer });
     }
 
     /* Paper 1 기준 A~D 각 0~5점 → 총 20점. 과제 만점이 20이 아니면 비율로 환산 */

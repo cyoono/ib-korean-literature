@@ -82,7 +82,7 @@ export default function PrequestionAnswersPage() {
           });
           const r = await res.json();
           if (typeof r.correct !== 'boolean') { failed++; return; }
-          const fb = ((r.verdict ? '판정: ' + r.verdict + '\n\n' : '') + (r.feedback || '') + (r.modelAnswer ? '\n\n📘 모범 답안\n' + r.modelAnswer : '')).trim();
+          const fb = ((r.grade ? '등급: ' + r.grade + '\n\n' : '') + (r.feedback || '') + (r.modelAnswer ? '\n\n📘 모범 답안\n' + r.modelAnswer : '')).trim();
           const { error } = await supabase
             .from('prequestion_answers')
             .update({ is_correct: r.correct, ai_feedback: fb })
@@ -164,7 +164,7 @@ export default function PrequestionAnswersPage() {
                 <div className="sub-head" onClick={() => setOpenStudent(open ? null : sid)}>
                   <div>
                     <div className="sub-student">{nameOf(sid)}</div>
-                    <div className="sub-meta">정답 {right} / {qs.length}</div>
+                    <div className="sub-meta">A·B 통과 {right} / {qs.length}</div>
                   </div>
                   <div style={{ fontSize: 13, color: '#2E5FAC', fontWeight: 600 }}>{open ? '▲ 접기' : '▼ 답 보기'}</div>
                 </div>
@@ -176,7 +176,9 @@ export default function PrequestionAnswersPage() {
                         {a ? (
                           <>
                             <div style={{ marginTop: 6 }}>
-                              <span style={{ color: a.is_correct ? '#1f6e3a' : '#B23A48', fontWeight: 700 }}>{a.is_correct ? '✓ 정답' : '✗ 오답'}</span>
+                              <span style={{ color: a.is_correct ? '#1f6e3a' : '#B23A48', fontWeight: 700 }}>
+                                {(() => { const g = (a.ai_feedback || '').match(/^등급: ([A-DF])/); return g ? '등급 ' + g[1] : (a.is_correct ? '✓ 통과' : '✗ 보완 필요'); })()}
+                              </span>
                               {' · 학생 답: '}{a.answer}
                             </div>
                             {a.ai_feedback && (
