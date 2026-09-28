@@ -16,8 +16,6 @@ type GradeRequest = {
 type Msg = { role: 'user' | 'assistant'; content: string };
 
 const MODEL = 'claude-sonnet-4-6';
-/* 사전 질문은 학생이 화면 앞에서 기다리므로 빠른 모델 사용 */
-const FAST_MODEL = 'claude-haiku-4-5';
 
 /* 비교용 정규화: 공백·따옴표·문장부호 차이를 무시한다 */
 function norm(t: string) {
@@ -51,7 +49,7 @@ async function callModel(apiKey: string, system: string, messages: Msg[], model 
   return textBlock && textBlock.text ? (textBlock.text as string) : '';
 }
 
-type Parsed = { score?: number; correct?: boolean; feedback?: string; model_answer?: string; A?: number; B?: number; C?: number; D?: number };
+type Parsed = { score?: number; correct?: boolean; verdict?: string; feedback?: string; model_answer?: string; A?: number; B?: number; C?: number; D?: number };
 function parse(rawIn: string): Parsed | null {
   let raw = rawIn.replace(/```json/g, '').replace(/```/g, '').trim();
   const s = raw.indexOf('{');
@@ -142,6 +140,33 @@ export async function POST(req: NextRequest) {
         : '출력 형식: {"A": <0-5 정수>, "B": <0-5 정수>, "C": <0-5 정수>, "D": <0-5 정수>, "feedback": "<5줄, 줄 사이는 \\n>"}',
     ].join('\n');
 
+    /* 사전 질문 전용 지시문: 짧은 답을 질문·본문과 대조해 정확히 판정하고 구체적으로 피드백 */
+    const pqSystemPrompt = [
+      '당신은 IB Korean A: Literature 교사입니다. 학생은 이번 회차 [본문]을 읽고 강의 전 [사전 질문]에 짧게 답했습니다.',
+      '',
+      '절대 규칙:',
+      '- 근거는 오직 [본문]이다. 이 작품의 다른 부분, 결말, 작가 생애, 해설 지식은 알고 있더라도 쓰지 않는다.',
+      '- 피드백과 모범 답안에서 작은따옴표로 인용하는 말은 [본문] 또는 [학생 답안]에 글자 그대로 있는 구절이어야 한다.',
+      '',
+      '채점 순서 (속으로 생각하고, 결과만 JSON으로 낸다):',
+      '1) [사전 질문]이 정확히 무엇을 묻는지 파악한다. 질문이 묻지 않은 것은 기준으로 삼지 않는다.',
+      '2) [본문]에서 답의 근거가 되는 구절을 찾는다.',
+      '3) 그 구절을 근거로 model_answer를 1~3문장으로 쓴다. 근거 구절을 작은따옴표로 한 번 이상 인용한다.',
+      '4) [학생 답안]을 model_answer와 대조해, 맞게 짚은 요소와 빠지거나 틀린 요소를 구분한다.',
+      '5) verdict를 정한다: 핵심을 모두 맞게 짚으면 "정답", 핵심 일부만 맞거나 근거 없이 결론만 맞으면 "부분 정답", 질문과 어긋나거나 본문과 다르면 "오답". 표현이 달라도 뜻이 같으면 맞은 것으로 본다.',
+      '',
+      '피드백: 학생이 직접 읽는다. 존댓말, 정확히 5줄, 줄 사이는 \\n. 각 줄 1~2문장.',
+      '   1줄: "✔ 맞게 짚은 점: " — 학생 답의 표현을 작은따옴표로 인용하고, 그것이 본문의 어느 구절과 맞닿는지 인용해 설명한다.',
+      '   2줄: "✔ 맞게 짚은 점: " — 두 번째로 맞은 요소. 없으면 학생 답에서 살릴 만한 출발점을 구체적으로 짚는다.',
+      '   3줄: "△ 아쉬운 점: " — 빠진 핵심이나 잘못 이해한 부분을 분명히 말하고, 본문 구절을 인용해 바로잡는다.',
+      '   4줄: "△ 아쉬운 점: " — 두 번째 보완점 (근거 없이 단정, 질문의 일부에만 답함, 표현이 모호함 등). 정답이면 더 정확하게 쓰는 방법을 제안한다.',
+      '   5줄: "→ 다음에는: " — 본문에서 다시 읽어 볼 구절 하나를 인용하고, 그것을 넣어 답을 어떻게 고쳐 쓰면 되는지 한 문장 예시로 보여 준다.',
+      '   "좋습니다", "더 생각해 보세요"처럼 내용 없는 말은 쓰지 않는다. 모든 줄에 학생 답이나 본문의 구체적 표현이 들어가야 한다.',
+      '',
+      '반드시 아래 JSON만 출력한다. 다른 텍스트나 백틱 금지.',
+      '{"verdict": "정답" | "부분 정답" | "오답", "model_answer": "<본문 근거 인용을 포함한 모범 답 1~3문장>", "feedback": "<5줄, 줄 사이는 \\n>"}',
+    ].join('\n');
+
     const userPrompt = [
       // 본문이 있으면 작품 제목은 넣지 않는다 — 제목이 작품 전체 지식을 끌어오기 때문
       !restrict && workTitle ? `[작품/과정] ${workTitle}` : '',
@@ -158,15 +183,16 @@ export async function POST(req: NextRequest) {
     ].filter(Boolean).join('\n');
 
     const messages: Msg[] = [{ role: 'user', content: userPrompt }];
-    const useModel = isPq ? FAST_MODEL : MODEL;
-    const useMax = isPq ? 900 : 1500;
-    let raw = await callModel(apiKey, systemPrompt, messages, useModel, useMax);
+    const useModel = MODEL; /* 사전 질문도 정확도를 위해 Sonnet 사용 */
+    const useMax = isPq ? 1000 : 1500;
+    const sysUsed = isPq ? pqSystemPrompt : systemPrompt;
+    let raw = await callModel(apiKey, sysUsed, messages, useModel, useMax);
     let parsed = parse(raw);
 
     /* 본문 한정 검사: 피드백의 인용구가 본문·답안에 실제로 있는지 확인하고, 없으면 한 번 다시 쓰게 한다 */
     if (restrict && parsed && parsed.feedback) {
       const pool = norm(safePassage) + '|' + norm(safeAnswer);
-      const bad = extractQuotes(parsed.feedback).filter((q) => {
+      const bad = extractQuotes(parsed.feedback + '\n' + (parsed.model_answer || '')).filter((q) => {
         const n = norm(q);
         return n.length >= 3 && !pool.includes(n);
       });
@@ -179,9 +205,9 @@ export async function POST(req: NextRequest) {
             bad.map((b) => "'" + b + "'").join(', ') +
             '\n작품의 다른 부분이나 배경지식을 쓰지 말고, [본문]과 [학생 답안]에 글자 그대로 있는 구절만 인용해서 같은 JSON 형식으로 다시 작성하세요.',
         });
-        const raw2 = await callModel(apiKey, systemPrompt, messages, useModel, useMax);
+        const raw2 = await callModel(apiKey, sysUsed, messages, useModel, useMax);
         const parsed2 = parse(raw2);
-        if (parsed2 && (typeof parsed2.A === 'number' || typeof parsed2.correct === 'boolean') && parsed2.feedback) {
+        if (parsed2 && (typeof parsed2.A === 'number' || typeof parsed2.verdict === 'string') && parsed2.feedback) {
           raw = raw2;
           parsed = parsed2;
         }
@@ -196,7 +222,9 @@ export async function POST(req: NextRequest) {
       let fbPq = (parsed.feedback || '').toString().trim().replace(/\\n/g, '\n');
       if (fbPq.length > 1500) fbPq = fbPq.slice(0, 1500);
       const modelAnswer = (parsed.model_answer || '').toString().trim();
-      return NextResponse.json({ correct: parsed.correct === true, feedback: fbPq, modelAnswer });
+      const v = (parsed.verdict || '').toString().replace(/\s/g, '');
+      const verdict = v === '정답' ? '정답' : v === '부분정답' ? '부분 정답' : '오답';
+      return NextResponse.json({ correct: verdict === '정답', verdict, feedback: fbPq, modelAnswer });
     }
 
     /* Paper 1 기준 A~D 각 0~5점 → 총 20점. 과제 만점이 20이 아니면 비율로 환산 */

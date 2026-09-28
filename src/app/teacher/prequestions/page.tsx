@@ -82,7 +82,7 @@ export default function PrequestionAnswersPage() {
           });
           const r = await res.json();
           if (typeof r.correct !== 'boolean') { failed++; return; }
-          const fb = ((r.feedback || '') + (r.modelAnswer ? '\n\n📘 모범 답안\n' + r.modelAnswer : '')).trim();
+          const fb = ((r.verdict ? '판정: ' + r.verdict + '\n\n' : '') + (r.feedback || '') + (r.modelAnswer ? '\n\n📘 모범 답안\n' + r.modelAnswer : '')).trim();
           const { error } = await supabase
             .from('prequestion_answers')
             .update({ is_correct: r.correct, ai_feedback: fb })

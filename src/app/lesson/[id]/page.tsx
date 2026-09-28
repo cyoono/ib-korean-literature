@@ -154,7 +154,7 @@ export default function LessonPage() {
         if (typeof r.correct === 'boolean') {
           /* 저장된 정답 문자열은 쓰지 않고, 질문과 본문만으로 AI가 새로 판단한 결과를 따른다 */
           results[q.id] = r.correct;
-          const fb = (r.feedback || '') + (r.modelAnswer ? '\n\n📘 모범 답안\n' + r.modelAnswer : '');
+          const fb = (r.verdict ? '판정: ' + r.verdict + '\n\n' : '') + (r.feedback || '') + (r.modelAnswer ? '\n\n📘 모범 답안\n' + r.modelAnswer : '');
           if (fb.trim()) fbs[q.id] = fb.trim();
           /* 끝난 질문부터 바로 보여 준다 */
           setPqResults((prev) => ({ ...prev, [q.id]: results[q.id] }));
@@ -349,14 +349,21 @@ export default function LessonPage() {
                 {pqGraded && !(q.id in pqResults) && (
                   <div className="pq-result" style={{ color: '#888' }}>⏳ AI가 이 답을 살펴보는 중...</div>
                 )}
-                {pqGraded && (q.id in pqResults) && (
-                  <div className={'pq-result ' + (pqResults[q.id] ? 'ok' : 'no')}>
-                    {pqResults[q.id] ? '✓ 정답입니다!' : '✗ 아쉬워요 — 아래 피드백을 확인해 보세요. 그래도 진행할 수 있습니다.'}
-                    {pqFeedback[q.id] && (
-                      <div style={{ whiteSpace: 'pre-wrap', marginTop: 8, lineHeight: 1.7, fontWeight: 400, color: '#333' }}>{pqFeedback[q.id]}</div>
-                    )}
-                  </div>
-                )}
+                {pqGraded && (q.id in pqResults) && (() => {
+                  const fbAll = pqFeedback[q.id] || '';
+                  const m = fbAll.match(/^판정: (정답|부분 정답|오답)\n+/);
+                  const verdict = m ? m[1] : (pqResults[q.id] ? '정답' : '오답');
+                  const body = m ? fbAll.slice(m[0].length) : fbAll;
+                  const label = verdict === '정답' ? '✓ 정답입니다!' : verdict === '부분 정답' ? '△ 부분 정답 — 핵심 일부를 짚었어요. 아래 피드백을 확인해 보세요.' : '✗ 아쉬워요 — 아래 피드백을 확인해 보세요. 그래도 진행할 수 있습니다.';
+                  return (
+                    <div className={'pq-result ' + (verdict === '정답' ? 'ok' : 'no')} style={verdict === '부분 정답' ? { color: '#8a6d1a' } : undefined}>
+                      {label}
+                      {body && (
+                        <div style={{ whiteSpace: 'pre-wrap', marginTop: 8, lineHeight: 1.7, fontWeight: 400, color: '#333' }}>{body}</div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             ))}
             {!pqGraded ? (
