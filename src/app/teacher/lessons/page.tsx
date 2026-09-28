@@ -12,6 +12,8 @@ type Lesson = {
   author: string | null;
   passage: string | null;
   intro_description: string | null;
+  intro_video_url: string | null;
+  lecture_video_url: string | null;
   updated_at: string | null;
 };
 
@@ -27,6 +29,7 @@ export default function LessonsPage() {
   const [msg, setMsg] = useState('');
   const [teacherName, setTeacherName] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const [lessonNumber, setLessonNumber] = useState('');
   const [part, setPart] = useState('part2');
@@ -44,7 +47,7 @@ export default function LessonsPage() {
   async function loadLessons() {
     const { data } = await supabase
       .from('lessons')
-      .select('id, lesson_number, part, title, status, author, passage, intro_description, updated_at')
+      .select('id, lesson_number, part, title, status, author, passage, intro_description, intro_video_url, lecture_video_url, updated_at')
       .order('lesson_number', { ascending: true });
     setLessons((data as Lesson[]) || []);
     setLoading(false);
@@ -202,7 +205,7 @@ export default function LessonsPage() {
                     {l.author ? ' · ' + l.author : ''}
                     {l.updated_at ? ' · 마지막 수정 ' + new Date(l.updated_at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                   </div>
-                  {(l.passage || l.intro_description) && (
+                  {(l.passage || l.intro_description) && openId !== l.id && (
                     <div style={{ fontSize: 13, color: '#555', marginTop: 6, lineHeight: 1.5, maxWidth: 640 }}>
                       {(() => {
                         const t = (l.passage || l.intro_description || '').replace(/\s+/g, ' ').trim();
@@ -210,6 +213,12 @@ export default function LessonsPage() {
                       })()}
                     </div>
                   )}
+                  <button
+                    onClick={() => setOpenId(openId === l.id ? null : l.id)}
+                    style={{ marginTop: 6, background: 'none', border: 'none', padding: 0, color: '#2E5FAC', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    {openId === l.id ? '▲ 내용 접기' : '▼ 전체 내용 보기'}
+                  </button>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{
@@ -238,6 +247,25 @@ export default function LessonsPage() {
                   </button>
                 </div>
               </div>
+              {openId === l.id && (
+                <div style={{ borderTop: '1px solid #eee', padding: '14px 18px', fontSize: 14, lineHeight: 1.8, color: '#333' }}>
+                  {l.intro_video_url && <div><b>도입 영상</b> · <a href={l.intro_video_url} target="_blank" rel="noopener noreferrer">{l.intro_video_url}</a></div>}
+                  {l.intro_description && (
+                    <div style={{ marginTop: 10 }}>
+                      <b>도입 설명</b>
+                      <div style={{ whiteSpace: 'pre-wrap' }}>{l.intro_description}</div>
+                    </div>
+                  )}
+                  {l.passage && (
+                    <div style={{ marginTop: 10 }}>
+                      <b>본문</b>
+                      <div style={{ whiteSpace: 'pre-wrap', background: '#fafafa', border: '1px solid #eee', padding: '12px 14px', marginTop: 4 }}>{l.passage}</div>
+                    </div>
+                  )}
+                  {l.lecture_video_url && <div style={{ marginTop: 10 }}><b>강의 영상</b> · <a href={l.lecture_video_url} target="_blank" rel="noopener noreferrer">{l.lecture_video_url}</a></div>}
+                  {!l.intro_video_url && !l.intro_description && !l.passage && !l.lecture_video_url && <div style={{ color: '#888' }}>아직 입력된 내용이 없습니다. "수정"을 눌러 내용을 넣어 주세요.</div>}
+                </div>
+              )}
             </div>
           ))
         )}
