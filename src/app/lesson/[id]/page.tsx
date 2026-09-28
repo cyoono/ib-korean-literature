@@ -39,12 +39,18 @@ export default function LessonPage() {
   const [asgInputs, setAsgInputs] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  /* 교사가 회차 관리에서 눌러 들어온 미리보기: 모든 단계를 열고, 돌아가기는 회차 관리로 */
+  const [teacherView, setTeacherView] = useState(false);
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = '/'; return; }
       setUserId(user.id);
+      if (new URLSearchParams(window.location.search).get('from') === 'teacher') {
+        const { data: me } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        if (me && me.role === 'teacher') setTeacherView(true);
+      }
 
       const [lessonRes, pqRes, asgRes, subRes, pqaRes, progRes] = await Promise.all([
         supabase.from('lessons').select('*').eq('id', lessonId).single(),
@@ -193,7 +199,7 @@ export default function LessonPage() {
   if (loading) return <div className="loading-note">불러오는 중...</div>;
   if (!lesson) return null;
 
-  const maxUnlocked = stepsCompleted.length > 0 ? Math.max(...stepsCompleted) + 1 : 1;
+  const maxUnlocked = teacherView ? 4 : (stepsCompleted.length > 0 ? Math.max(...stepsCompleted) + 1 : 1);
   const allDone = stepsCompleted.includes(4);
   const submittedCount = assignments.filter((a) => subFor(a.id)).length;
 
@@ -202,13 +208,18 @@ export default function LessonPage() {
       <header className="app-header">
         <div className="logo">IB · 글로컬 K-문학<span>SATUS</span></div>
         <div className="user-area">
-          <button className="logout-btn" onClick={() => (window.location.href = '/home')}>나의 강의실</button>
+          <button className="logout-btn" onClick={() => (window.location.href = teacherView ? '/teacher/lessons' : '/home')}>{teacherView ? '회차 관리' : '나의 강의실'}</button>
         </div>
       </header>
 
       <div className="lesson-wrap">
         <div className="lesson-head">
-          <button className="back" onClick={() => (window.location.href = '/home')}>← 나의 강의실로 돌아가기</button>
+          <button className="back" onClick={() => (window.location.href = teacherView ? '/teacher/lessons' : '/home')}>{teacherView ? '← 회차 관리로 돌아가기' : '← 나의 강의실로 돌아가기'}</button>
+          {teacherView && (
+            <div style={{ background: '#fffbe8', border: '1px solid #e8d98a', padding: '8px 12px', margin: '8px 0', fontSize: 13 }}>
+              선생님 미리보기 — 학생에게 보이는 화면입니다. 모든 단계가 열려 있으며, 여기서 입력한 답은 선생님 계정에만 저장됩니다.
+            </div>
+          )}
           <div className="num">LESSON {String(lesson.lesson_number).padStart(2, '0')}</div>
           <h1>{lesson.title}</h1>
           <div className="meta">{lesson.author || ''} {lesson.duration_estimate ? '· ' + lesson.duration_estimate : ''}</div>

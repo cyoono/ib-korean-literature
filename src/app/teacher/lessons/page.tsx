@@ -199,7 +199,9 @@ export default function LessonsPage() {
             <div className="sub-card" key={l.id}>
               <div className="sub-head" style={{ cursor: 'default' }}>
                 <div>
-                  <div className="sub-student">제{l.lesson_number}강 · {l.title}</div>
+                  <a href={'/lesson/' + l.id + '?from=teacher'} className="sub-student" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }} title="학생 화면으로 보기">
+                    제{l.lesson_number}강 · {l.title} <span style={{ fontSize: 12, color: '#2E5FAC', fontWeight: 600, marginLeft: 6 }}>강의 페이지 보기 →</span>
+                  </a>
                   <div className="sub-meta">
                     {l.part}
                     {l.author ? ' · ' + l.author : ''}
