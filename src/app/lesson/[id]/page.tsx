@@ -337,7 +337,10 @@ export default function LessonPage() {
                       <div className="my-answer">{sub.content}</div>
                       {sub.published_to_student && sub.final_score !== null ? (
                         <div className="asg-status scored">
-                          점수: {sub.final_score} / {a.max_score}점{sub.final_feedback ? ' — ' + sub.final_feedback : ''}
+                          점수: {sub.final_score} / {a.max_score}점
+                          {sub.final_feedback && (
+                            <div style={{ whiteSpace: 'pre-wrap', marginTop: 8, lineHeight: 1.7, fontWeight: 400 }}>{sub.final_feedback}</div>
+                          )}
                         </div>
                       ) : (
                         <div className="asg-status grading">⏳ 채점 중 — 선생님 검토 후 점수가 공개됩니다</div>

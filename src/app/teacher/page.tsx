@@ -188,6 +188,7 @@ export default function TeacherPage() {
                       }
                       onChange={(e) => setFbInput({ ...fbInput, [s.id]: e.target.value })}
                       placeholder="학생에게 보낼 피드백을 작성하세요"
+                      rows={7}
                     />
                     <button className="next-btn" onClick={() => publish(s)}>
                       {s.published_to_student ? '수정해서 다시 발송' : '점수 발송 → 학생에게 공개'}
