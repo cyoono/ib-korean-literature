@@ -4,7 +4,8 @@ import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 const MENU = [
-  { href: '/teacher', label: '채점 관리' },
+  { href: '/teacher', label: '과제 채점' },
+  { href: '/teacher/prequestions', label: '사전 질문 답' },
   { href: '/teacher/lessons', label: '회차 관리' },
   { href: '/teacher/approvals', label: '가입 승인' },
   { href: '/teacher/reports', label: '리포트' },

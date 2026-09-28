@@ -310,7 +310,7 @@ export default function LessonPage() {
             <h2>② 미리보는 오늘의 수업</h2>
             {lesson.passage && <div className="passage">{lesson.passage}</div>}
             <h2 style={{ fontSize: 17 }}>사전 질문</h2>
-            <p style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>이해도 확인용 질문입니다. 정답이 아니어도 다음 단계로 진행할 수 있어요.</p>
+            <p style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>이해도 확인용 질문입니다. <b style={{ color: '#B23A48' }}>이번 회차 본문 안에서 답을 찾아 쓰세요.</b> 정답이 아니어도 다음 단계로 진행할 수 있어요.</p>
             {prequestions.map((q) => (
               <div className="pq-item" key={q.id}>
                 <div className="q">{q.order_index}. {q.question}</div>
@@ -387,11 +387,6 @@ export default function LessonPage() {
                   <div className="a-title">과제 {a.order_index}. {a.title}</div>
                   <div className="a-prompt">{a.prompt}</div>
                   <div className="a-guide">권장 분량: {a.min_chars}~{a.max_chars}자 · {a.max_score}점 만점</div>
-                  {lesson.passage && (
-                    <div className="a-guide" style={{ color: '#B23A48', fontWeight: 600 }}>
-                      ※ 이번 회차에 주어진 본문에서만 근거를 찾아 답하세요. 본문에 없는 내용은 근거로 인정되지 않습니다.
-                    </div>
-                  )}
                   {sub ? (
                     <>
                       <div className="my-answer">{sub.content}</div>
@@ -411,7 +406,7 @@ export default function LessonPage() {
                       <textarea
                         value={asgInputs[a.id] || ''}
                         onChange={(e) => setAsgInputs({ ...asgInputs, [a.id]: e.target.value })}
-                        placeholder="본문의 표현을 인용하며 답안을 작성하세요"
+                        placeholder="여기에 답안을 작성하세요"
                         maxLength={a.max_chars || undefined}
                       />
                       <div className="char-row">
