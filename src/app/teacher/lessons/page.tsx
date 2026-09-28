@@ -9,6 +9,10 @@ type Lesson = {
   part: string;
   title: string;
   status: string;
+  author: string | null;
+  passage: string | null;
+  intro_description: string | null;
+  updated_at: string | null;
 };
 
 type PreQ = { question: string; correct_answer: string };
@@ -22,6 +26,7 @@ export default function LessonsPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [teacherName, setTeacherName] = useState('');
+  const [showForm, setShowForm] = useState(false);
 
   const [lessonNumber, setLessonNumber] = useState('');
   const [part, setPart] = useState('part2');
@@ -39,7 +44,7 @@ export default function LessonsPage() {
   async function loadLessons() {
     const { data } = await supabase
       .from('lessons')
-      .select('id, lesson_number, part, title, status')
+      .select('id, lesson_number, part, title, status, author, passage, intro_description, updated_at')
       .order('lesson_number', { ascending: true });
     setLessons((data as Lesson[]) || []);
     setLoading(false);
@@ -73,6 +78,12 @@ export default function LessonsPage() {
   async function saveLesson() {
     if (!lessonNumber || !title) {
       setMsg('회차 번호와 제목은 필수입니다.');
+      return;
+    }
+    const num = parseInt(lessonNumber, 10);
+    const existing = lessons.find((l) => l.lesson_number === num);
+    if (existing) {
+      setMsg('제' + num + '강은 이미 등록되어 있습니다. 내용을 고치려면 위 목록에서 제' + num + '강의 "수정"을 눌러 주세요.');
       return;
     }
     setSaving(true);
@@ -132,6 +143,7 @@ export default function LessonsPage() {
 
     setMsg('제' + lessonNumber + '강 "' + title + '" 이(가) 임시저장(draft)으로 등록되었습니다.');
     resetForm();
+    setShowForm(false);
     await loadLessons();
     setSaving(false);
   }
@@ -185,7 +197,19 @@ export default function LessonsPage() {
               <div className="sub-head" style={{ cursor: 'default' }}>
                 <div>
                   <div className="sub-student">제{l.lesson_number}강 · {l.title}</div>
-                  <div className="sub-meta">{l.part}</div>
+                  <div className="sub-meta">
+                    {l.part}
+                    {l.author ? ' · ' + l.author : ''}
+                    {l.updated_at ? ' · 마지막 수정 ' + new Date(l.updated_at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                  </div>
+                  {(l.passage || l.intro_description) && (
+                    <div style={{ fontSize: 13, color: '#555', marginTop: 6, lineHeight: 1.5, maxWidth: 640 }}>
+                      {(() => {
+                        const t = (l.passage || l.intro_description || '').replace(/\s+/g, ' ').trim();
+                        return t.length > 90 ? t.slice(0, 90) + '…' : t;
+                      })()}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{
@@ -218,6 +242,24 @@ export default function LessonsPage() {
           ))
         )}
 
+        {!showForm && (
+          <div style={{ marginTop: 32, borderTop: '2px solid ' + NAVY, paddingTop: 20 }}>
+            <button
+              onClick={() => {
+                resetForm();
+                const next = lessons.reduce((m, l) => Math.max(m, l.lesson_number), 0) + 1;
+                setLessonNumber(String(next));
+                setMsg('');
+                setShowForm(true);
+              }}
+              className="next-btn"
+            >
+              + 새 회차 추가 (제{lessons.reduce((m, l) => Math.max(m, l.lesson_number), 0) + 1}강)
+            </button>
+          </div>
+        )}
+
+        {showForm && (<>
         <h2 style={{ fontSize: 16, color: NAVY, marginTop: 32, borderTop: '2px solid ' + NAVY, paddingTop: 20 }}>새 회차 등록</h2>
 
         <div style={{ display: 'flex', gap: 12 }}>
@@ -289,7 +331,19 @@ export default function LessonsPage() {
           <button onClick={saveLesson} disabled={saving} className="next-btn" style={{ opacity: saving ? 0.6 : 1 }}>
             {saving ? '저장 중...' : '회차 등록 (임시저장)'}
           </button>
+          <button
+            onClick={() => { resetForm(); setMsg(''); setShowForm(false); }}
+            style={{ marginLeft: 8, background: '#eee', border: 'none', padding: '10px 18px', fontSize: 14, cursor: 'pointer' }}
+          >
+            취소
+          </button>
+          {msg && (
+            <div style={{ background: '#fffbe8', border: '1px solid #e8d98a', padding: '10px 14px', marginTop: 12, fontSize: 14 }}>
+              {msg}
+            </div>
+          )}
         </div>
+        </>)}
       </div>
     </>
   );
