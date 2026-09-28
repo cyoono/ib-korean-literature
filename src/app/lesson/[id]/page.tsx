@@ -344,6 +344,11 @@ export default function LessonPage() {
                     {pqFeedback[q.id] && (
                       <div style={{ whiteSpace: 'pre-wrap', marginTop: 8, lineHeight: 1.7, fontWeight: 400, color: '#333' }}>{pqFeedback[q.id]}</div>
                     )}
+                    {q.correct_answer && q.correct_answer.trim() && (
+                      <div style={{ marginTop: 10, padding: '8px 12px', background: '#eef3fb', borderLeft: '3px solid #1F3A6E', color: '#1F3A6E', fontWeight: 400, whiteSpace: 'pre-wrap' }}>
+                        <b>모범 답안</b>{'\n'}{q.correct_answer.split('|').map((c) => c.trim()).filter(Boolean).join(' / ')}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
