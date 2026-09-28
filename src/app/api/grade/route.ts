@@ -51,7 +51,8 @@ async function callModel(apiKey: string, system: string, messages: Msg[], model 
   return textBlock && textBlock.text ? (textBlock.text as string) : '';
 }
 
-function parse(rawIn: string): { score?: number; correct?: boolean; feedback?: string; model_answer?: string } | null {
+type Parsed = { score?: number; correct?: boolean; feedback?: string; model_answer?: string; A?: number; B?: number; C?: number; D?: number };
+function parse(rawIn: string): Parsed | null {
   let raw = rawIn.replace(/```json/g, '').replace(/```/g, '').trim();
   const s = raw.indexOf('{');
   const e = raw.lastIndexOf('}');
@@ -116,9 +117,17 @@ export async function POST(req: NextRequest) {
       '채점 원칙:',
       isPq
         ? '1. 이것은 강의 전 "사전 질문"에 대한 짧은 답이다. 먼저 [사전 질문]을 정확히 읽고, [본문]만 근거로 이 질문의 올바른 답을 스스로 정한다(model_answer). 그 기준으로 학생 답이 질문이 묻는 핵심을 맞게 짚었으면 correct=true, 아니면 false. 표현이 달라도 뜻이 맞으면 정답으로 본다. 질문이 묻지 않은 것을 기준으로 삼지 않는다.'
-        : `1. 점수는 0부터 ${maxScore}까지의 정수 하나만 부여한다 (소수점 금지).`,
+        : [
+            '1. IB Language A: Literature Paper 1(문학 텍스트 분석) 채점 기준으로 네 영역을 각각 0~5점 정수로 채점한다 (총 20점).',
+            '   A. 이해와 해석 (Understanding and interpretation): 텍스트를 얼마나 잘 이해하고, 타당한 추론과 함의를 끌어내는가? 주장을 텍스트 근거로 얼마나 잘 뒷받침하는가?',
+            '   B. 분석과 평가 (Analysis and evaluation): 텍스트의 특징과 작가의 선택(문체, 구조, 서술 시점, 이미지, 어조 등)이 의미를 어떻게 만드는지 얼마나 분석하고 평가하는가?',
+            '   C. 초점과 구성 (Focus and organization): 생각이 얼마나 짜임새 있고 일관되며 초점이 분명하게 전개되는가?',
+            '   D. 언어 (Language): 언어가 얼마나 명료하고 다양하며 정확한가? 문체·어투(register)·문학 용어 사용이 적절한가?',
+            '   각 영역 점수대: 0=기준 미달, 1=매우 미흡(거의 없음), 2=부분적·피상적, 3=적절하나 일반적, 4=좋음·설득력 있음, 5=탁월함·통찰력 있음.',
+            '   줄거리 요약에 머문 답은 A·B에서 2점을 넘기 어렵다. 문항과 무관한 내용은 C에서 감점한다.',
+          ].join('\n'),
       `2. 문항이 요구하는 핵심 논점을 얼마나 충실히 다루는지, ${src}의 근거가 정확한지를 우선 평가한다.`,
-      '3. 단순 줄거리 요약이나 문항과 무관한 내용은 감점한다.',
+      isPq ? '3. 단순 줄거리 요약이나 문항과 무관한 내용은 감점한다.' : '3. 피드백의 잘한 점·아쉬운 점은 가능하면 A~D 중 어느 영역에 해당하는지 괄호로 밝힌다. 예: "(B 분석과 평가)"',
       '4. 피드백은 학생이 직접 읽는다. 존댓말로, 반드시 정확히 5줄로 쓰고 줄 사이는 \\n 으로 구분한다.',
       `   1줄: "✔ 잘한 점: " 으로 시작. 학생 답안의 표현을 작은따옴표로 짧게 인용하고, 그 생각이 왜 타당한지 ${src}의 구체적 구절과 연결해 설명한다.`,
       '   2줄: "✔ 잘한 점: " 으로 시작. 1줄과 다른 두 번째 강점을 같은 방식으로 설명한다. 강점이 하나뿐이면 그 강점이 문항의 어떤 요구를 충족했는지 구체적으로 쓴다.',
@@ -130,7 +139,7 @@ export async function POST(req: NextRequest) {
       '',
       isPq
         ? '출력 형식: {"model_answer": "<본문에 근거한 모범 답 1~3문장>", "correct": <true 또는 false>, "feedback": "<5줄, 줄 사이는 \\n>"}'
-        : '출력 형식: {"score": <0-' + maxScore + ' 정수>, "feedback": "<5줄, 줄 사이는 \\n>"}',
+        : '출력 형식: {"A": <0-5 정수>, "B": <0-5 정수>, "C": <0-5 정수>, "D": <0-5 정수>, "feedback": "<5줄, 줄 사이는 \\n>"}',
     ].join('\n');
 
     const userPrompt = [
@@ -172,7 +181,7 @@ export async function POST(req: NextRequest) {
         });
         const raw2 = await callModel(apiKey, systemPrompt, messages, useModel, useMax);
         const parsed2 = parse(raw2);
-        if (parsed2 && (typeof parsed2.score === 'number' || typeof parsed2.correct === 'boolean') && parsed2.feedback) {
+        if (parsed2 && (typeof parsed2.A === 'number' || typeof parsed2.correct === 'boolean') && parsed2.feedback) {
           raw = raw2;
           parsed = parsed2;
         }
@@ -190,14 +199,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ correct: parsed.correct === true, feedback: fbPq, modelAnswer });
     }
 
-    const score = typeof parsed.score === 'number' ? Math.round(parsed.score) : null;
-    if (score == null || isNaN(score) || score < 0 || score > maxScore) {
+    /* Paper 1 기준 A~D 각 0~5점 → 총 20점. 과제 만점이 20이 아니면 비율로 환산 */
+    const crit = (['A', 'B', 'C', 'D'] as const).map((k) => {
+      const v = parsed![k];
+      return typeof v === 'number' && !isNaN(v) ? Math.max(0, Math.min(5, Math.round(v))) : null;
+    });
+    if (crit.some((v) => v === null)) {
       return NextResponse.json({ error: '점수 형식이 올바르지 않습니다.', needsReview: true }, { status: 200 });
     }
+    const [a, b, c, d] = crit as number[];
+    const total = a + b + c + d;
+    const score = maxScore === 20 ? total : Math.round((total / 20) * maxScore);
 
     let feedback = (parsed.feedback || '').toString().trim();
     feedback = feedback.replace(/\\n/g, '\n');
     if (feedback.length > 1500) feedback = feedback.slice(0, 1500);
+    const breakdown =
+      '[IB Paper 1 기준] A 이해와 해석 ' + a + '/5 · B 분석과 평가 ' + b + '/5 · C 초점과 구성 ' + c + '/5 · D 언어 ' + d + '/5 → 총 ' + total + '/20' +
+      (maxScore === 20 ? '' : ' (' + maxScore + '점 만점 환산 ' + score + '점)');
+    feedback = breakdown + '\n\n' + feedback;
 
     return NextResponse.json({ score, feedback });
   } catch (e) {

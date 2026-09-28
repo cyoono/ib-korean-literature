@@ -122,7 +122,7 @@ export default function EditLessonPage() {
         prompt: a.prompt ?? '',
         min_chars: a.min_chars != null ? String(a.min_chars) : '',
         max_chars: a.max_chars != null ? String(a.max_chars) : '',
-        max_score: a.max_score != null ? String(a.max_score) : '7',
+        max_score: a.max_score != null ? String(a.max_score) : '20',
       }));
 
       /* 과제별 제출물 수 — 삭제할 때 경고에 쓴다 */
@@ -169,7 +169,7 @@ export default function EditLessonPage() {
 
   /* ───── 과제 ───── */
   function addAsg() {
-    setAsgs([...asgs, { title: '', prompt: '', min_chars: '100', max_chars: '1000', max_score: '7' }]);
+    setAsgs([...asgs, { title: '', prompt: '', min_chars: '100', max_chars: '1000', max_score: '20' }]);
   }
   function removeAsg(i: number) {
     const target = asgs[i];
@@ -284,7 +284,7 @@ export default function EditLessonPage() {
       prompt: a.prompt ?? '',
       min_chars: a.min_chars != null ? String(a.min_chars) : '',
       max_chars: a.max_chars != null ? String(a.max_chars) : '',
-      max_score: a.max_score != null ? String(a.max_score) : '7',
+      max_score: a.max_score != null ? String(a.max_score) : '20',
     })));
   }
 

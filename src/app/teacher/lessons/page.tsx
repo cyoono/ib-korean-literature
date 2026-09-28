@@ -41,7 +41,7 @@ export default function LessonsPage() {
   const [lectureVideo, setLectureVideo] = useState('');
   const [preqs, setPreqs] = useState<PreQ[]>([{ question: '', correct_answer: '' }]);
   const [asgs, setAsgs] = useState<Asg[]>([
-    { title: '', prompt: '', min_chars: '100', max_chars: '1000', max_score: '7' },
+    { title: '', prompt: '', min_chars: '100', max_chars: '1000', max_score: '20' },
   ]);
 
   async function loadLessons() {
@@ -75,7 +75,7 @@ export default function LessonsPage() {
     setPassage('');
     setLectureVideo('');
     setPreqs([{ question: '', correct_answer: '' }]);
-    setAsgs([{ title: '', prompt: '', min_chars: '100', max_chars: '1000', max_score: '7' }]);
+    setAsgs([{ title: '', prompt: '', min_chars: '100', max_chars: '1000', max_score: '20' }]);
   }
 
   async function saveLesson() {
@@ -355,7 +355,7 @@ export default function LessonsPage() {
             </div>
           </div>
         ))}
-        <button onClick={() => setAsgs([...asgs, { title: '', prompt: '', min_chars: '100', max_chars: '1000', max_score: '7' }])} style={{ marginTop: 8, background: '#eee', border: 'none', padding: '6px 14px', fontSize: 13, cursor: 'pointer' }}>+ 과제 추가</button>
+        <button onClick={() => setAsgs([...asgs, { title: '', prompt: '', min_chars: '100', max_chars: '1000', max_score: '20' }])} style={{ marginTop: 8, background: '#eee', border: 'none', padding: '6px 14px', fontSize: 13, cursor: 'pointer' }}>+ 과제 추가</button>
 
         <div style={{ marginTop: 28 }}>
           <button onClick={saveLesson} disabled={saving} className="next-btn" style={{ opacity: saving ? 0.6 : 1 }}>
