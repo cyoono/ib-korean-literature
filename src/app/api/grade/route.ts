@@ -16,6 +16,8 @@ type GradeRequest = {
 type Msg = { role: 'user' | 'assistant'; content: string };
 
 const MODEL = 'claude-sonnet-4-6';
+/* 사전 질문은 학생이 화면 앞에서 기다리므로 빠른 모델 사용 */
+const FAST_MODEL = 'claude-haiku-4-5';
 
 /* 비교용 정규화: 공백·따옴표·문장부호 차이를 무시한다 */
 function norm(t: string) {
@@ -31,7 +33,7 @@ function extractQuotes(fb: string): string[] {
   return out;
 }
 
-async function callModel(apiKey: string, system: string, messages: Msg[]) {
+async function callModel(apiKey: string, system: string, messages: Msg[], model = MODEL, maxTokens = 1500) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -39,7 +41,7 @@ async function callModel(apiKey: string, system: string, messages: Msg[]) {
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
     },
-    body: JSON.stringify({ model: MODEL, max_tokens: 1500, temperature: 0, system, messages }),
+    body: JSON.stringify({ model, max_tokens: maxTokens, temperature: 0, system, messages }),
   });
   if (!res.ok) throw new Error('AI 채점 호출 실패: ' + (await res.text()));
   const data = await res.json();
@@ -148,7 +150,9 @@ export async function POST(req: NextRequest) {
     ].filter(Boolean).join('\n');
 
     const messages: Msg[] = [{ role: 'user', content: userPrompt }];
-    let raw = await callModel(apiKey, systemPrompt, messages);
+    const useModel = isPq ? FAST_MODEL : MODEL;
+    const useMax = isPq ? 900 : 1500;
+    let raw = await callModel(apiKey, systemPrompt, messages, useModel, useMax);
     let parsed = parse(raw);
 
     /* 본문 한정 검사: 피드백의 인용구가 본문·답안에 실제로 있는지 확인하고, 없으면 한 번 다시 쓰게 한다 */
@@ -167,7 +171,7 @@ export async function POST(req: NextRequest) {
             bad.map((b) => "'" + b + "'").join(', ') +
             '\n작품의 다른 부분이나 배경지식을 쓰지 말고, [본문]과 [학생 답안]에 글자 그대로 있는 구절만 인용해서 같은 JSON 형식으로 다시 작성하세요.',
         });
-        const raw2 = await callModel(apiKey, systemPrompt, messages);
+        const raw2 = await callModel(apiKey, systemPrompt, messages, useModel, useMax);
         const parsed2 = parse(raw2);
         if (parsed2 && (typeof parsed2.score === 'number' || typeof parsed2.correct === 'boolean') && parsed2.feedback) {
           raw = raw2;

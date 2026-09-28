@@ -129,6 +129,9 @@ export default function LessonPage() {
 
   async function gradePq() {
     setPqGrading(true);
+    setPqGraded(true);
+    setPqResults({});
+    setPqFeedback({});
     const results: Record<string, boolean> = {};
     const fbs: Record<string, string> = {};
     /* 사전 질문마다 AI가 본문 기준으로 정오 판단 + 5줄 피드백. 실패하면 예전처럼 정답 문자열 비교 */
@@ -152,12 +155,16 @@ export default function LessonPage() {
         if (typeof r.correct === 'boolean') {
           results[q.id] = r.correct || exact;
           if (r.feedback) fbs[q.id] = r.feedback;
+          /* 끝난 질문부터 바로 보여 준다 */
+          setPqResults((prev) => ({ ...prev, [q.id]: results[q.id] }));
+          if (r.feedback) setPqFeedback((prev) => ({ ...prev, [q.id]: r.feedback }));
           return;
         }
       } catch {
         /* 아래 기본 판정으로 */
       }
       results[q.id] = exact;
+      setPqResults((prev) => ({ ...prev, [q.id]: exact }));
     }));
     setPqResults(results);
     setPqFeedback(fbs);
@@ -338,7 +345,10 @@ export default function LessonPage() {
                   {wordCount(pqInputs[q.id] || '')} / {PQ_MAX_WORDS}단어
                   {wordCount(pqInputs[q.id] || '') > PQ_MAX_WORDS ? ' — 250단어 이내로 줄여 주세요' : ''}
                 </div>
-                {pqGraded && (
+                {pqGraded && !(q.id in pqResults) && (
+                  <div className="pq-result" style={{ color: '#888' }}>⏳ AI가 이 답을 살펴보는 중...</div>
+                )}
+                {pqGraded && (q.id in pqResults) && (
                   <div className={'pq-result ' + (pqResults[q.id] ? 'ok' : 'no')}>
                     {pqResults[q.id] ? '✓ 정답입니다!' : '✗ 아쉬워요 — 아래 피드백을 확인해 보세요. 그래도 진행할 수 있습니다.'}
                     {pqFeedback[q.id] && (
@@ -363,7 +373,7 @@ export default function LessonPage() {
               </button>
             ) : (
               <>
-                <button className="next-btn" onClick={() => completeStep(2)}>완료하고 다음으로 →</button>
+                <button className="next-btn" disabled={pqGrading} onClick={() => completeStep(2)}>{pqGrading ? '채점 중...' : '완료하고 다음으로 →'}</button>
                 {teacherView && (
                   <button
                     onClick={() => { setPqGraded(false); setPqFeedback({}); setPqResults({}); }}
