@@ -17,7 +17,7 @@ type Sub = {
   published_to_student: boolean;
 };
 type Asg = { id: string; lesson_id: string; order_index: number; title: string; prompt: string; max_score: number };
-type LessonLite = { id: string; lesson_number: number; title: string };
+type LessonLite = { id: string; lesson_number: number; title: string; passage: string | null };
 type ProfileLite = { id: string; name: string; email: string };
 
 export default function TeacherPage() {
@@ -31,6 +31,7 @@ export default function TeacherPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'pending' | 'sent' | 'all'>('pending');
   const [teacherName, setTeacherName] = useState('');
+  const [regradingId, setRegradingId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -43,7 +44,7 @@ export default function TeacherPage() {
       const [subRes, asgRes, lessonRes, profRes] = await Promise.all([
         supabase.from('submissions').select('*').order('submitted_at', { ascending: false }),
         supabase.from('assignments').select('id, lesson_id, order_index, title, prompt, max_score'),
-        supabase.from('lessons').select('id, lesson_number, title'),
+        supabase.from('lessons').select('id, lesson_number, title, passage'),
         supabase.from('profiles').select('id, name, email'),
       ]);
       setSubs((subRes.data as Sub[]) || []);
@@ -58,6 +59,43 @@ export default function TeacherPage() {
   function asgOf(s: Sub) { return asgs.find((a) => a.id === s.assignment_id); }
   function lessonOf(s: Sub) { const a = asgOf(s); return a ? lessons.find((l) => l.id === a.lesson_id) : undefined; }
   function studentOf(s: Sub) { return students.find((p) => p.id === s.user_id); }
+
+  /* 현재 채점 기준(회차 본문 한정, 5줄 피드백)으로 AI 채점을 다시 받는다 */
+  async function regrade(s: Sub) {
+    const a = asgOf(s);
+    const l = lessonOf(s);
+    if (!a) { alert('과제 정보를 찾을 수 없습니다.'); return; }
+    setRegradingId(s.id);
+    try {
+      const res = await fetch('/api/grade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: a.prompt,
+          answer: s.content,
+          maxScore: a.max_score || 7,
+          workTitle: l ? l.title : '',
+          lessonTitle: l ? '제' + l.lesson_number + '강' : '',
+          passage: l && l.passage ? l.passage : '',
+        }),
+      });
+      const result = await res.json();
+      if (typeof result.score !== 'number') {
+        alert('AI 채점 실패: ' + (result.error || '알 수 없는 오류'));
+        return;
+      }
+      const { error } = await supabase
+        .from('submissions')
+        .update({ ai_score: result.score, ai_feedback: result.feedback || '', ai_graded_at: new Date().toISOString() })
+        .eq('id', s.id);
+      if (error) { alert('저장 실패: ' + error.message); return; }
+      setSubs(subs.map((x) => (x.id === s.id ? { ...x, ai_score: result.score, ai_feedback: result.feedback || '' } : x)));
+    } catch {
+      alert('AI 채점 중 오류가 발생했습니다.');
+    } finally {
+      setRegradingId(null);
+    }
+  }
 
   async function publish(s: Sub) {
     const a = asgOf(s);
@@ -134,6 +172,15 @@ export default function TeacherPage() {
                   <div className="sub-body">
                     <div className="sub-prompt">{a ? a.prompt : ''}</div>
                     <div className="my-answer">{s.content}</div>
+
+                    <button
+                      type="button"
+                      onClick={() => regrade(s)}
+                      disabled={regradingId === s.id}
+                      style={{ margin: '8px 0', background: '#fff', color: '#1F3A6E', border: '1px solid #1F3A6E', padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: regradingId === s.id ? 0.6 : 1 }}
+                    >
+                      {regradingId === s.id ? 'AI 채점 중...' : '↻ AI 다시 채점 (본문 기준)'}
+                    </button>
 
                     {/* AI 채점 원본 — 참고용. 실제 발송되는 것은 아래 입력칸의 내용이다. */}
                     {(s.ai_score !== null || s.ai_feedback) && (
