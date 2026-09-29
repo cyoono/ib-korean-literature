@@ -72,7 +72,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ score: 0, feedback: '답안이 제출되지 않았습니다.' });
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    /* 붙여넣을 때 섞인 공백·줄바꿈·따옴표 제거 */
+    const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim().replace(/^["']|["']$/g, '').trim();
     if (!apiKey) {
       return NextResponse.json({ error: 'API 키가 설정되지 않았습니다.' }, { status: 500 });
     }
