@@ -38,6 +38,8 @@ async function callModel(apiKey: string, system: string, messages: Msg[], model 
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
+      /* 워크스페이스에 묶이지 않은 조직 키를 쓸 때만 필요 */
+      ...(process.env.ANTHROPIC_WORKSPACE_ID ? { 'anthropic-workspace-id': process.env.ANTHROPIC_WORKSPACE_ID.trim() } : {}),
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({ model, max_tokens: maxTokens, temperature: 0, system, messages }),
