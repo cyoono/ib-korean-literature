@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveAnthropic } from '@/lib/anthropicKey';
 
 export const runtime = 'nodejs';
 
@@ -32,7 +33,7 @@ function extractQuotes(fb: string): string[] {
 }
 
 async function callModel(apiKey: string, system: string, messages: Msg[], model = MODEL, maxTokens = 1500) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch(resolveAnthropic().baseUrl + '/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -72,8 +73,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ score: 0, feedback: '답안이 제출되지 않았습니다.' });
     }
 
-    /* 붙여넣을 때 섞인 공백·줄바꿈·따옴표 제거 */
-    const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim().replace(/^["']|["']$/g, '').trim();
+    const apiKey = resolveAnthropic().key;
     if (!apiKey) {
       return NextResponse.json({ error: 'API 키가 설정되지 않았습니다.' }, { status: 500 });
     }
