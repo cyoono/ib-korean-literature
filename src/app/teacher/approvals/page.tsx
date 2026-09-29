@@ -43,6 +43,22 @@ export default function ApprovalsPage() {
 
   useEffect(() => { load(true); }, []);
 
+  /* 선생님이 학생 비밀번호를 초기값으로 되돌린다 (DB 함수 reset_student_password, 선생님만 실행 가능) */
+  async function resetPassword(p: Profile) {
+    const pw = window.prompt((p.name || p.email) + ' 님의 비밀번호를 무엇으로 초기화할까요? (8자 이상)', 'Satus!45');
+    if (!pw) return;
+    if (pw.length < 8) { setMsg('비밀번호는 8자 이상이어야 합니다.'); return; }
+    setBusyId(p.id);
+    setMsg('');
+    const { error } = await supabase.rpc('reset_student_password', { target: p.id, new_password: pw });
+    setBusyId(null);
+    if (error) {
+      setMsg('비밀번호 초기화 실패: ' + error.message + (error.message.includes('function') ? ' — SQL Editor에서 reset_student_password 함수를 먼저 만들어 주세요.' : ''));
+    } else {
+      setMsg((p.name || p.email) + ' 님의 비밀번호를 초기화했습니다. 이메일 ' + p.email + ' + 새 비밀번호로 로그인할 수 있습니다.');
+    }
+  }
+
   async function setStatus(p: Profile, status: 'active' | 'rejected') {
     if (status === 'rejected' && !window.confirm((p.name || p.email) + ' 님의 가입을 거절할까요?')) return;
     setBusyId(p.id);
@@ -139,6 +155,15 @@ export default function ApprovalsPage() {
                         거절
                       </button>
                     </>
+                  )}
+                  {p.role !== 'teacher' && p.status === 'active' && (
+                    <button
+                      onClick={() => resetPassword(p)}
+                      disabled={busyId === p.id}
+                      style={{ background: '#fff', color: NAVY, border: '1px solid ' + NAVY, padding: '7px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      비밀번호 초기화
+                    </button>
                   )}
                   {p.status === 'rejected' && (
                     <button
