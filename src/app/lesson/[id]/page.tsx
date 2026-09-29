@@ -26,7 +26,7 @@ function wordCount(t: string) {
 
 type PreQ = { id: string; order_index: number; question: string; correct_answer: string };
 type Assignment = { id: string; order_index: number; title: string; prompt: string; min_chars: number | null; max_chars: number | null; max_score: number };
-type Submission = { assignment_id: string; content: string; final_score: number | null; final_feedback: string | null; published_to_student: boolean };
+type Submission = { id?: string; assignment_id: string; content: string; final_score: number | null; final_feedback: string | null; published_to_student: boolean };
 
 const STEP_NAMES = ['오늘의 수업', '미리보는 오늘의 수업', '강의 보기', '과제물'];
 
@@ -46,6 +46,7 @@ export default function LessonPage() {
   const [pqGraded, setPqGraded] = useState(false);
   const [pqFeedback, setPqFeedback] = useState<Record<string, string>>({});
   const [pqGrading, setPqGrading] = useState(false);
+  const [editingAsg, setEditingAsg] = useState<Record<string, boolean>>({});
   const [asgInputs, setAsgInputs] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -66,7 +67,7 @@ export default function LessonPage() {
         supabase.from('lessons').select('*').eq('id', lessonId).single(),
         supabase.from('prequestions').select('*').eq('lesson_id', lessonId).order('order_index'),
         supabase.from('assignments').select('*').eq('lesson_id', lessonId).order('order_index'),
-        supabase.from('submissions').select('assignment_id, content, final_score, final_feedback, published_to_student').eq('user_id', user.id),
+        supabase.from('submissions').select('id, assignment_id, content, final_score, final_feedback, published_to_student').eq('user_id', user.id),
         supabase.from('prequestion_answers').select('*').eq('user_id', user.id),
         supabase.from('lesson_progress').select('current_step, steps_completed').eq('user_id', user.id).eq('lesson_id', lessonId).maybeSingle(),
       ]);
@@ -134,6 +135,7 @@ export default function LessonPage() {
     setPqFeedback({});
     const results: Record<string, boolean> = {};
     const fbs: Record<string, string> = {};
+    let failedPq = false;
     /* 사전 질문마다 AI가 본문 기준으로 정오 판단 + 5줄 피드백. 실패하면 예전처럼 정답 문자열 비교 */
     await Promise.all(prequestions.map(async (q) => {
       const ans = (pqInputs[q.id] || '').trim();
@@ -162,11 +164,20 @@ export default function LessonPage() {
           return;
         }
       } catch {
-        /* 아래 기본 판정으로 */
+        /* 아래에서 실패 처리 */
       }
-      results[q.id] = exact;
-      setPqResults((prev) => ({ ...prev, [q.id]: exact }));
+      failedPq = true;
+      void exact;
     }));
+    if (failedPq) {
+      /* AI 채점이 안 되면 예전 정답 글자 비교로 대신하지 않고, 다시 시도하게 한다 */
+      setPqGraded(false);
+      setPqGrading(false);
+      setPqResults({});
+      setPqFeedback({});
+      alert('AI 채점에 실패했습니다. 잠시 후 "채점하기"를 다시 눌러 주세요. 계속되면 선생님께 알려 주세요.');
+      return;
+    }
     setPqResults(results);
     setPqFeedback(fbs);
     setPqGraded(true);
@@ -200,18 +211,43 @@ export default function LessonPage() {
       return;
     }
     setSaving(true);
-    const { data: inserted, error } = await supabase
-      .from('submissions')
-      .insert({ user_id: userId, assignment_id: a.id, content: content })
-      .select('id')
-      .single();
-    setSaving(false);
-    if (error) {
-      alert('제출 실패: ' + error.message);
-      return;
+    const prev = submissions.find((s) => s.assignment_id === a.id);
+    let inserted: { id: string } | null = null;
+    if (prev && prev.id) {
+      /* 수정 제출: 같은 제출물을 새 내용으로 바꾸고 채점 결과는 비운다 */
+      const { data, error } = await supabase
+        .from('submissions')
+        .update({
+          content,
+          submitted_at: new Date().toISOString(),
+          ai_score: null, ai_feedback: null, ai_graded_at: null,
+          final_score: null, final_feedback: null, published_to_student: false,
+        })
+        .eq('id', prev.id)
+        .select('id');
+      setSaving(false);
+      if (error || !data || data.length === 0) {
+        alert('수정 실패: ' + (error ? error.message : '수정 권한이 없습니다. 선생님께 문의해 주세요.'));
+        return;
+      }
+      inserted = { id: prev.id };
+    } else {
+      const { data, error } = await supabase
+        .from('submissions')
+        .insert({ user_id: userId, assignment_id: a.id, content: content })
+        .select('id')
+        .single();
+      setSaving(false);
+      if (error) {
+        alert('제출 실패: ' + error.message);
+        return;
+      }
+      inserted = data;
     }
+    setEditingAsg((e) => ({ ...e, [a.id]: false }));
 
-    const updated = [...submissions, { assignment_id: a.id, content: content, final_score: null, final_feedback: null, published_to_student: false }];
+    const newSub = { id: inserted ? inserted.id : undefined, assignment_id: a.id, content: content, final_score: null, final_feedback: null, published_to_student: false };
+    const updated = [...submissions.filter((s) => s.assignment_id !== a.id), newSub];
     setSubmissions(updated);
     const submittedForThisLesson = assignments.filter((x) => updated.some((s) => s.assignment_id === x.id)).length;
     if (assignments.length > 0 && submittedForThisLesson >= assignments.length) {
@@ -434,9 +470,17 @@ export default function LessonPage() {
                   <div className="a-title">과제 {a.order_index}. {a.title}</div>
                   <div className="a-prompt">{a.prompt}</div>
                   <div className="a-guide">최대 {ASG_MAX_WORDS}단어{a.min_chars ? ' · 최소 ' + a.min_chars + '자' : ''} · {a.max_score}점 만점</div>
-                  {sub ? (
+                  {sub && !editingAsg[a.id] ? (
                     <>
                       <div className="my-answer">{sub.content}</div>
+                      {(!sub.published_to_student || teacherView) && (
+                        <button
+                          onClick={() => { setAsgInputs({ ...asgInputs, [a.id]: sub.content }); setEditingAsg({ ...editingAsg, [a.id]: true }); }}
+                          style={{ margin: '6px 0', background: '#fff', color: '#1F3A6E', border: '1px solid #1F3A6E', padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                        >
+                          ✎ 수정하기
+                        </button>
+                      )}
                       {sub.published_to_student && sub.final_score !== null ? (
                         <div className="asg-status scored">
                           점수: {sub.final_score} / {a.max_score}점
@@ -460,7 +504,17 @@ export default function LessonPage() {
                           {words} / {ASG_MAX_WORDS}단어 · {len}자{a.min_chars ? ' (최소 ' + a.min_chars + '자)' : ''}
                           {over ? ' — 1000단어 이내로 줄여 주세요' : ''}
                         </span>
-                        <button className="submit-asg" disabled={saving || len === 0 || over} onClick={() => submitAsg(a)}>제출하기</button>
+                        <span>
+                          {editingAsg[a.id] && (
+                            <button
+                              onClick={() => setEditingAsg({ ...editingAsg, [a.id]: false })}
+                              style={{ marginRight: 8, background: '#eee', border: 'none', padding: '8px 14px', fontSize: 13, cursor: 'pointer' }}
+                            >
+                              취소
+                            </button>
+                          )}
+                          <button className="submit-asg" disabled={saving || len === 0 || over} onClick={() => submitAsg(a)}>{editingAsg[a.id] ? '수정해서 다시 제출' : '제출하기'}</button>
+                        </span>
                       </div>
                     </>
                   )}
