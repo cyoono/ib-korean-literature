@@ -27,3 +27,16 @@ export function resolveAnthropic(): { key: string; source: string; baseUrl: stri
   }
   return { key: primary, source: primary ? 'ANTHROPIC_API_KEY' : '', baseUrl: 'https://api.anthropic.com' };
 }
+
+/* 워크스페이스 ID(wrkspc_...) 찾기: ANTHROPIC_WORKSPACE_ID 값이 올바르면 그것,
+   아니면 이름이나 값이 wrkspc_ 로 시작하는 환경변수에서 찾는다 (이름·값을 바꿔 넣은 경우 대비) */
+export function resolveWorkspaceId(): string {
+  const direct = clean(process.env.ANTHROPIC_WORKSPACE_ID);
+  if (/^wrkspc_[A-Za-z0-9]+$/.test(direct)) return direct;
+  for (const [name, v] of Object.entries(process.env)) {
+    const val = clean(v);
+    if (/^wrkspc_[A-Za-z0-9]+$/.test(val)) return val;
+    if (/^wrkspc_[A-Za-z0-9]+$/.test(name)) return name;
+  }
+  return '';
+}

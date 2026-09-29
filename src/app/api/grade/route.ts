@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { resolveAnthropic } from '@/lib/anthropicKey';
+import { resolveAnthropic, resolveWorkspaceId } from '@/lib/anthropicKey';
 
 export const runtime = 'nodejs';
 
@@ -39,7 +39,7 @@ async function callModel(apiKey: string, system: string, messages: Msg[], model 
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
       /* 워크스페이스에 묶이지 않은 조직 키를 쓸 때만 필요 */
-      ...(process.env.ANTHROPIC_WORKSPACE_ID ? { 'anthropic-workspace-id': process.env.ANTHROPIC_WORKSPACE_ID.trim() } : {}),
+      ...(resolveWorkspaceId() ? { 'anthropic-workspace-id': resolveWorkspaceId() } : {}),
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({ model, max_tokens: maxTokens, temperature: 0, system, messages }),

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { resolveAnthropic } from '@/lib/anthropicKey';
+import { resolveAnthropic, resolveWorkspaceId } from '@/lib/anthropicKey';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,6 +17,8 @@ export async function GET() {
     length: key.length,
     viaGateway: baseUrl !== 'https://api.anthropic.com',
     varsWithRealKey: otherNames,
+    workspaceId: resolveWorkspaceId() || '(없음)',
+    workspaceVarRaw: process.env.ANTHROPIC_WORKSPACE_ID ? (process.env.ANTHROPIC_WORKSPACE_ID.trim().slice(0, 8) + '...') : '(없음)',
     ok: key.startsWith('sk-ant-') && key.length > 90,
   });
 }
