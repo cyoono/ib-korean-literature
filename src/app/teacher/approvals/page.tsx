@@ -24,6 +24,10 @@ export default function ApprovalsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(true);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
 
   async function load(first = false) {
     const { data, error } = await supabase
@@ -57,6 +61,51 @@ export default function ApprovalsPage() {
     } else {
       setMsg((p.name || p.email) + ' 님의 비밀번호를 초기화했습니다. 이메일 ' + p.email + ' + 새 비밀번호로 로그인할 수 있습니다.');
     }
+  }
+
+  function startEdit(p: Profile) {
+    setEditId(p.id);
+    setEditName(p.name || '');
+    setEditPhone(p.phone_last4 || '');
+    setEditEmail(p.email || '');
+    setMsg('');
+  }
+
+  /* 회원 정보 수정: 이름·연락처 뒷자리·이메일 (DB 함수 update_member, 선생님만 실행 가능) */
+  async function saveEdit(p: Profile) {
+    if (!editName.trim()) { setMsg('이름을 입력해 주세요.'); return; }
+    if (editPhone && !/^\d{4}$/.test(editPhone)) { setMsg('연락처 뒷자리는 숫자 4자리로 입력해 주세요.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail.trim())) { setMsg('이메일 형식을 확인해 주세요.'); return; }
+    setBusyId(p.id);
+    const { error } = await supabase.rpc('update_member', {
+      target: p.id,
+      new_name: editName.trim(),
+      new_phone: editPhone.trim() || null,
+      new_email: editEmail.trim().toLowerCase(),
+    });
+    setBusyId(null);
+    if (error) {
+      setMsg('수정 실패: ' + error.message + (error.message.includes('function') ? ' — SQL Editor에서 update_member 함수를 먼저 만들어 주세요.' : ''));
+      return;
+    }
+    setMsg((editName.trim()) + ' 님의 정보를 수정했습니다.');
+    setEditId(null);
+    await load();
+  }
+
+  /* 회원 삭제: 계정과 그 학생의 답·제출물·진도를 모두 지운다 (DB 함수 delete_member) */
+  async function deleteMember(p: Profile) {
+    const who = p.name || p.email;
+    if (!window.confirm(who + ' 님의 계정을 삭제합니다.\n\n이 학생의 사전 질문 답, 과제 제출물, 점수와 피드백, 진도가 모두 함께 지워지며 되돌릴 수 없습니다.\n\n정말 삭제할까요?')) return;
+    setBusyId(p.id);
+    const { error } = await supabase.rpc('delete_member', { target: p.id });
+    setBusyId(null);
+    if (error) {
+      setMsg('삭제 실패: ' + error.message + (error.message.includes('function') ? ' — SQL Editor에서 delete_member 함수를 먼저 만들어 주세요.' : ''));
+      return;
+    }
+    setMsg(who + ' 님의 계정을 삭제했습니다.');
+    await load();
   }
 
   async function setStatus(p: Profile, status: 'active' | 'rejected') {
@@ -174,8 +223,49 @@ export default function ApprovalsPage() {
                       다시 승인
                     </button>
                   )}
+                  {p.role !== 'teacher' && (
+                    <>
+                      <button
+                        onClick={() => (editId === p.id ? setEditId(null) : startEdit(p))}
+                        disabled={busyId === p.id}
+                        style={{ background: '#2E5FAC', color: '#fff', border: 'none', padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        {editId === p.id ? '닫기' : '수정'}
+                      </button>
+                      <button
+                        onClick={() => deleteMember(p)}
+                        disabled={busyId === p.id}
+                        style={{ background: RED, color: '#fff', border: 'none', padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        삭제
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
+              {editId === p.id && (
+                <div style={{ borderTop: '1px solid #eee', padding: '14px 18px', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
+                  <label style={{ fontSize: 13, color: '#444' }}>
+                    이름<br />
+                    <input value={editName} onChange={(e) => setEditName(e.target.value)} style={{ padding: '8px 10px', border: '1px solid #ccc', fontSize: 14, width: 160 }} />
+                  </label>
+                  <label style={{ fontSize: 13, color: '#444' }}>
+                    연락처 끝 4자리<br />
+                    <input value={editPhone} onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 4))} style={{ padding: '8px 10px', border: '1px solid #ccc', fontSize: 14, width: 110 }} />
+                  </label>
+                  <label style={{ fontSize: 13, color: '#444' }}>
+                    이메일 (로그인 아이디)<br />
+                    <input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} style={{ padding: '8px 10px', border: '1px solid #ccc', fontSize: 14, width: 260 }} />
+                  </label>
+                  <button
+                    onClick={() => saveEdit(p)}
+                    disabled={busyId === p.id}
+                    style={{ background: NAVY, color: '#fff', border: 'none', padding: '9px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    저장
+                  </button>
+                </div>
+              )}
             </div>
           ))
         )}
