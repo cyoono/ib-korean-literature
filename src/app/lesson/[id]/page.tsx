@@ -285,9 +285,10 @@ export default function LessonPage() {
       }
     }
   }
-  function embed(url: string | null) {
+    function embed(url: string | null) {
     if (!url) return null;
-    return url.replace('watch?v=', 'embed/');
+    const m = url.match(/(?:youtu\.be\/|v=|embed\/|shorts\/|live\/)([\w-]{11})/);
+    return m ? `https://www.youtube.com/embed/${m[1]}` : url;
   }
 
   function subFor(aid: string) {
@@ -348,7 +349,7 @@ export default function LessonPage() {
           <div className="panel">
             <h2>① 오늘의 수업</h2>
             <div className="video-box">
-              {embed(lesson.intro_video_url) ? (
+              allowFullScreen referrerPolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture" />
                 <iframe src={embed(lesson.intro_video_url) || ''} allowFullScreen />
               ) : (
                 '인트로 영상이 아직 등록되지 않았습니다'
@@ -439,7 +440,7 @@ export default function LessonPage() {
           <div className="panel">
             <h2>③ 강의 보기</h2>
             <div className="video-box">
-              {embed(lesson.lecture_video_url) ? (
+             allowFullScreen referrerPolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture" />
                 <iframe src={embed(lesson.lecture_video_url) || ''} allowFullScreen />
               ) : (
                 '강의 영상이 아직 등록되지 않았습니다'
