@@ -349,8 +349,8 @@ export default function LessonPage() {
           <div className="panel">
             <h2>① 오늘의 수업</h2>
             <div className="video-box">
-              allowFullScreen referrerPolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture" />
-                <iframe src={embed(lesson.intro_video_url) || ''} allowFullScreen />
+                           {embed(lesson.intro_video_url) ? (
+                <iframe src={embed(lesson.intro_video_url) || ''} allowFullScreen referrerPolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture" />
               ) : (
                 '인트로 영상이 아직 등록되지 않았습니다'
               )}
@@ -440,8 +440,8 @@ export default function LessonPage() {
           <div className="panel">
             <h2>③ 강의 보기</h2>
             <div className="video-box">
-             allowFullScreen referrerPolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture" />
-                <iframe src={embed(lesson.lecture_video_url) || ''} allowFullScreen />
+              {embed(lesson.lecture_video_url) ? (
+                <iframe src={embed(lesson.lecture_video_url) || ''} allowFullScreen referrerPolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture" />
               ) : (
                 '강의 영상이 아직 등록되지 않았습니다'
               )}
