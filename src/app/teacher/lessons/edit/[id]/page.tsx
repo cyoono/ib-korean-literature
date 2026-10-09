@@ -43,6 +43,7 @@ export default function EditLessonPage() {
   const [introDesc, setIntroDesc] = useState('');
   const [passage, setPassage] = useState('');
   const [lectureVideo, setLectureVideo] = useState('');
+  const [lectureNotes, setLectureNotes] = useState('');
 
   const [preqs, setPreqs] = useState<PreQ[]>([]);
   const [asgs, setAsgs] = useState<Asg[]>([]);
@@ -66,7 +67,7 @@ export default function EditLessonPage() {
 
       const { data: lesson, error } = await supabase
         .from('lessons')
-        .select('lesson_number, part, title, author, intro_video_url, intro_description, passage, lecture_video_url')
+        .select('lesson_number, part, title, author, intro_video_url, intro_description, passage, lecture_video_url, lecture_notes')
         .eq('id', lessonId)
         .single();
       if (error || !lesson) { say('강의를 불러오지 못했습니다.'); setLoading(false); return; }
@@ -79,6 +80,7 @@ export default function EditLessonPage() {
       setIntroDesc(lesson.intro_description ?? '');
       setPassage(lesson.passage ?? '');
       setLectureVideo(lesson.lecture_video_url ?? '');
+      setLectureNotes(lesson.lecture_notes ?? '');
 
       const [preqRes, asgRes] = await Promise.all([
         supabase
@@ -209,6 +211,7 @@ export default function EditLessonPage() {
         intro_description: introDesc || null,
         passage: passage || null,
         lecture_video_url: lectureVideo || null,
+        lecture_notes: lectureNotes || null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', lessonId);
@@ -355,6 +358,9 @@ export default function EditLessonPage() {
 
         <label style={labelStyle}>강의 영상 URL (YouTube)</label>
         <input style={inputStyle} value={lectureVideo} onChange={(e) => setLectureVideo(e.target.value)} placeholder="https://youtu.be/..." />
+
+        <label style={labelStyle}>강의록 (학생 화면 ③단계에 표시 · 마크다운: ## 제목 · - 목록 · &gt; 인용 · **굵게** · | 표 |)</label>
+        <textarea style={{ ...inputStyle, minHeight: 320, fontFamily: 'monospace', fontSize: 13 }} value={lectureNotes} onChange={(e) => setLectureNotes(e.target.value)} placeholder="강의록 내용을 붙여 넣으세요" />
 
         {/* ───── 사전질문 ───── */}
         <h3 style={{ fontSize: 15, color: NAVY, marginTop: 28 }}>사전질문 (자동채점) — {preqs.length}개</h3>

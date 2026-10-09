@@ -330,3 +330,20 @@ body {
 
   @page { size: A4 portrait; margin: 14mm; }
 }
+
+/* 강의록 (lecture notes) */
+.lecture-notes { font-size: 15px; line-height: 1.9; color: #222; }
+.lecture-notes .md-h1 { font-size: 21px; font-weight: 800; color: #1F3A6E; margin: 6px 0 14px; }
+.lecture-notes .md-h2 { font-size: 17px; font-weight: 800; color: #1F3A6E; margin: 28px 0 10px; padding-bottom: 6px; border-bottom: 2px solid #E6E1D3; }
+.lecture-notes .md-h3 { font-size: 15px; font-weight: 700; margin: 18px 0 8px; }
+.lecture-notes .md-p { margin: 8px 0; }
+.lecture-notes .md-list { margin: 8px 0 8px 22px; }
+.lecture-notes .md-list li { margin: 4px 0; }
+.lecture-notes .md-list li.md-sub { margin-left: 18px; list-style: circle; }
+.lecture-notes .md-quote { background: #F5F2E8; border-left: 4px solid #1F3A6E; padding: 12px 18px; margin: 12px 0; font-family: 'Noto Serif KR', serif; }
+.lecture-notes .md-quote p { margin: 4px 0; }
+.lecture-notes .md-hr { border: none; border-top: 1px solid #ddd; margin: 22px 0; }
+.lecture-notes .md-table-wrap { overflow-x: auto; margin: 12px 0; }
+.lecture-notes .md-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.lecture-notes .md-table th, .lecture-notes .md-table td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; vertical-align: top; }
+.lecture-notes .md-table th { background: #F5F2E8; }

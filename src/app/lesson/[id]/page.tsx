@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import MiniMarkdown from '@/app/components/MiniMarkdown';
 
 type Lesson = {
   id: string;
@@ -14,11 +15,12 @@ type Lesson = {
   intro_description: string | null;
   passage: string | null;
   lecture_video_url: string | null;
+  lecture_notes: string | null;
 };
 
 /* 단어 수: 띄어쓰기 기준 */
 const PQ_MAX_WORDS = 250;
-const ASG_MAX_WORDS = 1000;
+const ASG_MAX_WORDS = 250;
 function wordCount(t: string) {
   const s = t.trim();
   return s === '' ? 0 : s.split(/\s+/).length;
@@ -28,7 +30,7 @@ type PreQ = { id: string; order_index: number; question: string; correct_answer:
 type Assignment = { id: string; order_index: number; title: string; prompt: string; min_chars: number | null; max_chars: number | null; max_score: number };
 type Submission = { id?: string; assignment_id: string; content: string; final_score: number | null; final_feedback: string | null; published_to_student: boolean };
 
-const STEP_NAMES = ['오늘의 수업', '미리보는 오늘의 수업', '강의 보기', '과제물'];
+const STEP_NAMES = ['오늘의 수업', '강의 보기', '강의록', '과제물'];
 
 export default function LessonPage() {
   const params = useParams();
@@ -364,81 +366,7 @@ export default function LessonPage() {
 
         {activeStep === 2 && (
           <div className="panel">
-            <h2>② 미리보는 오늘의 수업</h2>
-            {lesson.passage && <div className="passage">{lesson.passage}</div>}
-            <h2 style={{ fontSize: 17 }}>사전 질문</h2>
-            <p style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>이해도 확인용 질문입니다. <b style={{ color: '#B23A48' }}>이번 회차 본문 안에서 답을 찾아 쓰세요.</b> 정답이 아니어도 다음 단계로 진행할 수 있어요.</p>
-            {prequestions.map((q) => (
-              <div className="pq-item" key={q.id}>
-                <div className="q">{q.order_index}. {q.question}</div>
-                <textarea
-                  value={pqInputs[q.id] || ''}
-                  onChange={(e) => setPqInputs({ ...pqInputs, [q.id]: e.target.value })}
-                  placeholder="본문에서 근거를 찾아 답을 쓰세요 (최대 250단어)"
-                  disabled={pqGraded}
-                  rows={3}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #ccc', fontSize: 14, fontFamily: 'inherit', resize: 'vertical' }}
-                />
-                <div style={{ fontSize: 12, textAlign: 'right', color: wordCount(pqInputs[q.id] || '') > PQ_MAX_WORDS ? '#B23A48' : '#888' }}>
-                  {wordCount(pqInputs[q.id] || '')} / {PQ_MAX_WORDS}단어
-                  {wordCount(pqInputs[q.id] || '') > PQ_MAX_WORDS ? ' — 250단어 이내로 줄여 주세요' : ''}
-                </div>
-                {pqGraded && !(q.id in pqResults) && (
-                  <div className="pq-result" style={{ color: '#888' }}>⏳ AI가 이 답을 살펴보는 중...</div>
-                )}
-                {pqGraded && (q.id in pqResults) && (() => {
-                  const fbAll = pqFeedback[q.id] || '';
-                  const m = fbAll.match(/^(?:등급|판정): ([A-DF]|정답|부분 정답|오답)\n+/);
-                  const raw = m ? m[1] : (pqResults[q.id] ? 'B' : 'D');
-                  const grade = raw === '정답' ? 'A' : raw === '부분 정답' ? 'C' : raw === '오답' ? 'F' : raw;
-                  const body = m ? fbAll.slice(m[0].length) : fbAll;
-                  const desc: Record<string, string> = {
-                    A: '질문에 정확히 답했고 사실도 본문과 맞아요.',
-                    B: '질문에 맞게 답했어요. 근거를 조금 더 분명히 해 봐요.',
-                    C: '핵심 일부만 짚었어요. 아래 피드백을 확인해 보세요.',
-                    D: '질문과 어긋나거나 본문과 다른 부분이 있어요.',
-                    F: '질문이나 본문과 맞지 않아요. 아래 피드백을 보고 다시 생각해 보세요.',
-                  };
-                  const color = grade === 'A' || grade === 'B' ? '#1f6e3a' : grade === 'C' ? '#8a6d1a' : '#B23A48';
-                  return (
-                    <div className={'pq-result ' + (grade === 'A' || grade === 'B' ? 'ok' : 'no')} style={{ color }}>
-                      <span style={{ display: 'inline-block', minWidth: 28, textAlign: 'center', border: '2px solid ' + color, fontWeight: 800, marginRight: 8 }}>{grade}</span>
-                      {desc[grade] || ''}
-                      {body && (
-                        <div style={{ whiteSpace: 'pre-wrap', marginTop: 8, lineHeight: 1.7, fontWeight: 400, color: '#333' }}>{body}</div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-            ))}
-            {!pqGraded ? (
-              <button
-                className="next-btn"
-                disabled={pqGrading || prequestions.some((q) => !(pqInputs[q.id] || '').trim() || wordCount(pqInputs[q.id] || '') > PQ_MAX_WORDS)}
-                onClick={gradePq}
-              >
-                {pqGrading ? 'AI가 답을 살펴보는 중... (10~20초)' : '채점하기'}
-              </button>
-            ) : (
-              <>
-                <button className="next-btn" disabled={pqGrading} onClick={() => completeStep(2)}>{pqGrading ? '채점 중...' : '완료하고 다음으로 →'}</button>
-                {teacherView && (
-                  <button
-                    onClick={() => { setPqGraded(false); setPqFeedback({}); setPqResults({}); }}
-                    style={{ marginLeft: 8, background: '#eee', border: 'none', padding: '10px 18px', fontSize: 14, cursor: 'pointer' }}
-                  >
-                    ↻ 다시 풀어 보기 (선생님 미리보기)
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {activeStep === 3 && (
-          <div className="panel">
-            <h2>③ 강의 보기</h2>
+            <h2>② 강의 보기</h2>
             <div className="video-box">
               {embed(lesson.lecture_video_url) ? (
                 <iframe src={embed(lesson.lecture_video_url) || ''} allowFullScreen referrerPolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture" />
@@ -446,13 +374,33 @@ export default function LessonPage() {
                 '강의 영상이 아직 등록되지 않았습니다'
               )}
             </div>
-            <button className="next-btn" onClick={() => completeStep(3)}>완료하고 다음으로 →</button>
+            {lesson.passage && (
+              <details style={{ marginBottom: 18 }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 700, color: '#1F3A6E', padding: '6px 0' }}>오늘의 본문 펼쳐 보기</summary>
+                <div className="passage">{lesson.passage}</div>
+              </details>
+            )}
+            <button className="next-btn" onClick={() => completeStep(2)}>완료하고 다음으로 →</button>
+          </div>
+        )}
+
+        {activeStep === 3 && (
+          <div className="panel">
+            <h2>③ 강의록</h2>
+            {lesson.lecture_notes ? (
+              <div className="lecture-notes"><MiniMarkdown source={lesson.lecture_notes} /></div>
+            ) : (
+              <p style={{ color: '#888' }}>강의록이 아직 등록되지 않았습니다.</p>
+            )}
+            <p style={{ fontSize: 13, color: '#888', margin: '18px 0 10px' }}>강의록으로 복습한 뒤 다음 단계에서 문제를 풀어 보세요.</p>
+            <button className="next-btn" onClick={() => completeStep(3)}>완료하고 문제 풀러 가기 →</button>
           </div>
         )}
 
         {activeStep === 4 && (
           <div className="panel">
-            <h2>④ 과제물</h2>
+            <h2>④ 강의 후 문제</h2>
+            <p style={{ fontSize: 13, color: '#888', marginBottom: 14 }}>강의와 강의록 내용을 바탕으로, 문항마다 <b>200단어 내외</b>로 답하세요. (최대 {ASG_MAX_WORDS}단어)</p>
             <div className="traffic">
               {assignments.map((a, i) => {
                 const submitted = !!subFor(a.id);
@@ -468,7 +416,7 @@ export default function LessonPage() {
               const over = words > ASG_MAX_WORDS;
               return (
                 <div className="asg-card" key={a.id}>
-                  <div className="a-title">과제 {a.order_index}. {a.title}</div>
+                  <div className="a-title">문제 {a.order_index}. {a.title}</div>
                   <div className="a-prompt">{a.prompt}</div>
                   <div className="a-guide">최대 {ASG_MAX_WORDS}단어{a.min_chars ? ' · 최소 ' + a.min_chars + '자' : ''} · {a.max_score}점 만점</div>
                   {sub && !editingAsg[a.id] ? (
@@ -503,7 +451,7 @@ export default function LessonPage() {
                       <div className="char-row">
                         <span className="char-count" style={{ color: over ? '#B23A48' : undefined }}>
                           {words} / {ASG_MAX_WORDS}단어 · {len}자{a.min_chars ? ' (최소 ' + a.min_chars + '자)' : ''}
-                          {over ? ' — 1000단어 이내로 줄여 주세요' : ''}
+                          {over ? ' — ' + ASG_MAX_WORDS + '단어 이내로 줄여 주세요' : ''}
                         </span>
                         <span>
                           {editingAsg[a.id] && (
